@@ -8,20 +8,21 @@
           </div>
           <ul class="sidebar-menu">
             <li>
-              <a href="/dashboard" class="nav-link" {{ (request()->is('dashboard')) ? 'active' : '' }}>
+              <a href="/admin/dashboard" class="nav-link" {{ (request()->is('admin/dashboard')) ? 'active' : '' }}>
                 <span>Dashboard</span>
             </a>
             </li>
-            <li class="dropdown">
-              <a href="#" class="nav-link has-dropdown" data-toggle="dropdown"><span>Layout</span></a>
-              <ul class="dropdown-menu">
-                <li><a class="nav-link" href="layout-default.html">Default Layout</a></li>
-                <li><a class="nav-link" href="layout-transparent.html">Transparent Sidebar</a></li>
-                <li><a class="nav-link" href="layout-top-navigation.html">Top Navigation</a></li>
-              </ul>
+            <li>
+              <a href="/admin/rooms" class="nav-link" {{ (request()->is('admin/rooms')) ? 'active' : '' }}>
+                <span>Kamar</span>
+            </a>
             </li>
-            <li><a class="nav-link" href="blank.html"> <span>Blank Page</span></a></li>
-            <li><a class="nav-link" href="credits.html"></i> <span>Credits</span></a></li>
+            <li>
+              <a href="/admin/tenants" class="nav-link" {{ (request()->is('admin/tenants')) ? 'active' : '' }}>
+                <span>Penghuni</span>
+            </a>
+            </li>
+            
           </ul>
 
           <div class="mt-4 mb-4 p-3 hide-sidebar-mini">

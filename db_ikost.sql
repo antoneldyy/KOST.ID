@@ -186,3 +186,43 @@ COMMIT;
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
 /*!40101 SET CHARACTER_SET_RESULTS=@OLD_CHARACTER_SET_RESULTS */;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
+
+-- --------------------------------------------------------
+-- Additional schema for iKost (rooms, payments, and user profile fields)
+-- Safe to run multiple times; uses IF NOT EXISTS where possible.
+
+-- Add user profile columns if missing
+ALTER TABLE `users`
+  ADD COLUMN IF NOT EXISTS `phone` varchar(50) NULL AFTER `email`,
+  ADD COLUMN IF NOT EXISTS `occupation` varchar(100) NULL AFTER `phone`;
+
+-- Rooms table
+CREATE TABLE IF NOT EXISTS `rooms` (
+  `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT,
+  `number` varchar(50) NOT NULL,
+  `user_id` bigint(20) UNSIGNED NULL,
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `rooms_number_unique` (`number`),
+  KEY `rooms_user_id_foreign` (`user_id`),
+  CONSTRAINT `rooms_user_id_foreign` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Payments table
+CREATE TABLE IF NOT EXISTS `payments` (
+  `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT,
+  `user_id` bigint(20) UNSIGNED NOT NULL,
+  `room_id` bigint(20) UNSIGNED NULL,
+  `month` tinyint(3) UNSIGNED NOT NULL,
+  `year` smallint(5) UNSIGNED NOT NULL,
+  `amount` bigint(20) UNSIGNED NOT NULL,
+  `paid_at` date DEFAULT NULL,
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `payments_user_month_year_unique` (`user_id`,`month`,`year`),
+  KEY `payments_room_id_foreign` (`room_id`),
+  CONSTRAINT `payments_user_id_foreign` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `payments_room_id_foreign` FOREIGN KEY (`room_id`) REFERENCES `rooms` (`id`) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

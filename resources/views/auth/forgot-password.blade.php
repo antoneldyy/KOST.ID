@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta content="width=device-width, initial-scale=1, maximum-scale=1, shrink-to-fit=no" name="viewport">
-  <title>Login &mdash; Stisla</title>
+  <title>Forgot Password &mdash; Stisla</title>
 
   <!-- General CSS Files -->
   <link rel="stylesheet" href="{{asset('stisla/assets/modules/bootstrap/css/bootstrap.min.css')}}">
@@ -36,58 +36,49 @@
               <img src="{{asset('stisla/assets/img/logo.png')}}" alt="logo" width="100" class="shadow-light rounded-circle">
             </div>
 
-            @if (session('failed'))
-                <div class="alert alert-danger">{{session('failed')}}</div>
+            @if (session('error'))
+                <div class="alert alert-danger">{{session('error')}}</div>
+            @endif
+
+            @if ($errors->any())
+                <div class="alert alert-danger">
+                    <ul class="mb-0">
+                        @foreach ($errors->all() as $error)
+                            <li>{{ $error }}</li>
+                        @endforeach
+                    </ul>
+                </div>
             @endif
 
             <div class="card card-primary">
-              <div class="card-header"><h4>Login</h4></div>
+              <div class="card-header"><h4>Lupa Password</h4></div>
 
               <div class="card-body">
-                <form method="POST" action="/login" class="needs-validation" novalidate="">
+                <p class="text-muted">Masukkan email Anda dan kami akan mengirimkan link untuk reset password.</p>
+                <form method="POST" action="{{ route('password.email') }}" class="needs-validation" novalidate="">
                     @csrf
                   <div class="form-group">
                     <label for="email">Email</label>
-                    <input id="email" type="email" class="form-control" name="email" tabindex="1" required autofocus>
+                    <input id="email" type="email" class="form-control" name="email" value="{{ old('email') }}" tabindex="1" required autofocus>
                     <div class="invalid-feedback">
                       Please fill in your email
                     </div>
                   </div>
 
                   <div class="form-group">
-                    <div class="d-block">
-                    	<label for="password" class="control-label">Password</label>
-                      <div class="float-right">
-                        <a href="/forgot-password" class="text-small">
-                          Forgot Password?
-                        </a>
-                      </div>
-                    </div>
-                    <input id="password" type="password" class="form-control" name="password" tabindex="2" required>
-                    <div class="invalid-feedback">
-                      please fill in your password
-                    </div>
-                  </div>
-
-                  <div class="form-group">
-                    <div class="custom-control custom-checkbox">
-                      <input type="checkbox" name="remember" class="custom-control-input" tabindex="3" id="remember-me">
-                      <label class="custom-control-label" for="remember-me">Remember Me</label>
-                    </div>
-                  </div>
-
-                  <div class="form-group">
-                    <button type="submit" class="btn btn-primary btn-lg btn-block" tabindex="4">
-                      Login
+                    <button type="submit" class="btn btn-primary btn-lg btn-block" tabindex="2">
+                      Cek Email Saya
                     </button>
                   </div>
                 </form>
 
-
               </div>
             </div>
             <div class="mt-5 text-muted text-center">
-              Don't have an account? <a href="/register">Create One</a>
+              Ingat password Anda? <a href="/login">Login di sini</a>
+            </div>
+            <div class="mt-2 text-muted text-center">
+              Belum punya akun? <a href="/register">Daftar di sini</a>
             </div>
             <div class="simple-footer">
               Copyright &copy; iKostDev 2025

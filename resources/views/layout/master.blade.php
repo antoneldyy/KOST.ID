@@ -18,6 +18,24 @@
   <!-- Template CSS -->
   <link rel="stylesheet" href="{{asset('stisla/assets/css/style.css')}}">
   <link rel="stylesheet" href="{{asset('stisla/assets/css/components.css')}}">
+  
+  <!-- Custom CSS -->
+  <style>
+    .notification-badge {
+      position: absolute;
+      top: -5px;
+      right: -5px;
+      font-size: 10px;
+      padding: 2px 5px;
+    }
+    .dropdown-item.unread {
+      background-color: #f8f9fa;
+      font-weight: 500;
+    }
+    .dropdown-item.unread .dropdown-item-desc {
+      color: #495057;
+    }
+  </style>
 <!-- Start GA -->
 <script async src="https://www.googletagmanager.com/gtag/js?id=UA-94034622-3"></script>
 <script>
@@ -72,5 +90,68 @@
   <!-- Template JS File -->
   <script src="{{asset('stisla/assets/js/scripts.js')}}"></script>
   <script src="{{asset('stisla/assets/js/custom.js')}}"></script>
+
+  <!-- Notification Scripts -->
+  <script>
+  function markAsRead(notificationId) {
+    fetch('/admin/notifications/' + notificationId + '/read', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRF-TOKEN': '{{ csrf_token() }}'
+      }
+    })
+    .then(response => response.json())
+    .then(data => {
+      if (data.success) {
+        // Update notification badge
+        updateNotificationBadge();
+        // Remove unread class
+        event.target.closest('.dropdown-item').classList.remove('unread');
+      }
+    })
+    .catch(error => console.error('Error:', error));
+  }
+
+  function markAllAsRead() {
+    fetch('/admin/notifications/mark-all-read', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRF-TOKEN': '{{ csrf_token() }}'
+      }
+    })
+    .then(response => response.json())
+    .then(data => {
+      if (data.success) {
+        location.reload();
+      }
+    })
+    .catch(error => console.error('Error:', error));
+  }
+
+  function updateNotificationBadge() {
+    fetch('/admin/notifications/unread-count')
+      .then(response => response.json())
+      .then(data => {
+        const badge = document.querySelector('.notification-badge');
+        if (data.count > 0) {
+          if (badge) {
+            badge.textContent = data.count;
+          } else {
+            const bell = document.querySelector('.notification-toggle');
+            bell.innerHTML = '<i class="far fa-bell"></i><span class="badge badge-danger notification-badge">' + data.count + '</span>';
+          }
+        } else {
+          const bell = document.querySelector('.notification-toggle');
+          bell.innerHTML = '<i class="far fa-bell"></i>';
+        }
+      })
+      .catch(error => console.error('Error:', error));
+  }
+
+  // Update notification badge every 30 seconds
+  setInterval(updateNotificationBadge, 30000);
+  </script>
 </body>
 </html>

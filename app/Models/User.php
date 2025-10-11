@@ -19,6 +19,10 @@ class User extends Authenticatable
     protected $fillable = [
         'name',
         'email',
+        'phone',
+        'occupation',
+        'address',
+        'ktp_path',
         'role',
         'status',
         'password',
@@ -42,4 +46,19 @@ class User extends Authenticatable
     protected $casts = [
         'email_verified_at' => 'datetime',
     ];
+
+    public function room()
+    {
+        return $this->hasOne(\App\Models\Room::class, 'user_id');
+    }
+
+    public function activeRoom()
+    {
+        return $this->hasOne(\App\Models\Room::class, 'user_id')->where('status', 'active');
+    }
+
+    public function payments()
+    {
+        return $this->hasMany(\App\Models\Payment::class);
+    }
 }
