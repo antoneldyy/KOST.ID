@@ -3,6 +3,7 @@
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\UserpageController;
 
 /*
 |--------------------------------------------------------------------------
@@ -15,19 +16,20 @@ use App\Http\Controllers\DashboardController;
 |
 */
 
-Route::get('/', function () {
-    return view('welcome');
-});
+// Route::get('/', function () {
+//     return view('welcome');
+// });
 
-Route::get('/login', fn () => view('auth.login'))->name('login');
+Route::get('/', fn () => view('auth.login'))->name('login');
 
 Route::post('/login', [AuthController::class, 'login']);
-
-Route::get('/user', fn () => 'halaman user');
 
 Route::group(['middleware' => ['auth', 'check_role:admin']], function() {
     Route::get('/dashboard', [DashboardController::class, 'index']);
 });
 
+Route::group(['middleware' => ['auth', 'check_role:user']], function() {
+    Route::get('/userpage', [UserpageController::class, 'index']);
+});
 
 Route::get('/logout', [AuthController::class, 'logout']);
