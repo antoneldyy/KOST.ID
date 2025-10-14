@@ -3,21 +3,14 @@
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\DashboardController;
-<<<<<<< .mine
-use App\Http\Controllers\UserpageController;
-
-
-
-
-
-=======
 use App\Http\Controllers\RoomController;
 use App\Http\Controllers\TenantController;
 use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ActivityController;
 use App\Http\Controllers\NotificationController;
->>>>>>> .theirs
+use App\Http\Controllers\UserpageController;
+use App\Http\Controllers\PilihKamarController;
 
 /*
 |--------------------------------------------------------------------------
@@ -34,7 +27,7 @@ use App\Http\Controllers\NotificationController;
 //     return view('welcome');
 // });
 
-Route::get('/', fn () => view('auth.login'))->name('login');
+Route::get('/login', fn () => view('auth.login'))->name('login');
 Route::get('/register', [AuthController::class, 'showRegister'])->name('register');
 Route::post('/register', [AuthController::class, 'register']);
 
@@ -47,6 +40,7 @@ Route::post('/login', [AuthController::class, 'login']);
 
 // Backward compatibility: old dashboard URL
 Route::redirect('/dashboard', '/admin/dashboard');
+Route::redirect('/userpage', '/user/userpage');
 
 Route::group(['middleware' => ['auth', 'check_role:admin'], 'prefix' => 'admin'], function() {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
@@ -77,14 +71,29 @@ Route::group(['middleware' => ['auth', 'check_role:admin'], 'prefix' => 'admin']
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::put('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::get('/activities', [ActivityController::class, 'index'])->name('activities.index');
-    
+
     Route::post('/notifications/{notification}/read', [NotificationController::class, 'markAsRead'])->name('notifications.read');
     Route::post('/notifications/mark-all-read', [NotificationController::class, 'markAllAsRead'])->name('notifications.mark-all-read');
     Route::get('/notifications/unread-count', [NotificationController::class, 'getUnreadCount'])->name('notifications.unread-count');
 });
 
-Route::group(['middleware' => ['auth', 'check_role:user']], function() {
-    Route::get('/userpage', [UserpageController::class, 'index']);
+//Route::middleware(['auth', 'pilih.kamar'])->get('/userpage', [UserpageController::class, 'index'])->name('userpage');
+
+Route::group(['middleware' => ['auth', 'check_role:user'], 'prefix' => 'user'], function() {
+    Route::get('/userpage', [UserpageController::class, 'index'])->name('userpage');
+    Route::get('/choose-room', [PilihKamarController::class, 'index'])->name('pilih.kamar');
+    Route::post('/choose-room', [PilihKamarController::class, 'store'])->name('pilih.kamar.store');
+
+    //transaksi
+    //Route::resource('payment', PaymentController::class);
+    Route::get('/payment', [PaymentController::class, 'index'])->name('payment.index');
+    Route::post('/payment', [PaymentController::class, 'store'])->name('payment.store');
+    Route::get('/payment/create', [PaymentController::class, 'create'])->name('payment.create');
+    Route::post('/payment/upload/{id}', [PaymentController::class, 'uploadProof'])->name('payment.upload');
+    Route::post('/payment/{payment}/approve', [PaymentController::class, 'approve'])->name('payments.approve');
+
+    Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
+    Route::put('/profile', [ProfileController::class, 'update'])->name('profile.update');
 });
 
 Route::get('/logout', [AuthController::class, 'logout']);
