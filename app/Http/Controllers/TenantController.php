@@ -14,9 +14,11 @@ class TenantController extends Controller
     public function index(Request $request)
     {
         $query = User::where('role', 'user')->with('room');
-        
-        // Filter berdasarkan status
-        if ($request->has('status') && $request->status !== 'all') {
+
+        // Default filter: show only active if no status param
+        if (!$request->has('status')) {
+            $query->where('status', 'active');
+        } elseif ($request->status !== 'all') {
             $query->where('status', $request->status);
         }
         
@@ -62,6 +64,7 @@ class TenantController extends Controller
             'address' => 'nullable|string',
             'ktp' => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:2048',
             'password' => 'nullable|string|min:6',
+            'room_id' => 'nullable|exists:rooms,id',
         ]);
         
         // Handle KTP file upload
@@ -81,6 +84,30 @@ class TenantController extends Controller
         
         unset($validated['ktp']); // Remove the file from validated data
         $tenant->update($validated);
+
+        // Handle room assignment/move
+        if ($request->filled('room_id')) {
+            $targetRoom = Room::find($request->input('room_id'));
+            if ($targetRoom) {
+                // Free previous room if different
+                if ($tenant->room && $tenant->room->id !== $targetRoom->id) {
+                    $tenant->room->update(['user_id' => null]);
+                }
+                // Assign if room is empty or already assigned to this tenant
+                if (!$targetRoom->user_id || $targetRoom->user_id === $tenant->id) {
+                    // Ensure tenant is not occupying another room
+                    Room::where('user_id', $tenant->id)
+                        ->where('id', '!=', $targetRoom->id)
+                        ->update(['user_id' => null]);
+                    $targetRoom->update(['user_id' => $tenant->id]);
+                }
+            }
+        } else {
+            // If room_id empty, detach tenant from current room
+            if ($tenant->room) {
+                $tenant->room->update(['user_id' => null]);
+            }
+        }
         return back()->with('success', 'Penghuni diperbarui');
     }
 
@@ -104,32 +131,16 @@ class TenantController extends Controller
 
     public function deactivate(User $tenant)
     {
-        // Remove tenant from room when deactivated
+        // Remove tenant from room when deactivated (no room status updates)
         if ($tenant->room) {
-            $tenant->room->update(['user_id' => null, 'status' => 'inactive']);
+            $tenant->room->update(['user_id' => null]);
         }
         
-        $tenant->update(['status' => 'inactive']);
+        $tenant->update(['status' => 'deactive']);
         return back()->with('success', 'Penghuni dinonaktifkan');
     }
 
-    public function activateRoom(User $tenant)
-    {
-        if ($tenant->room) {
-            $tenant->room->update(['status' => 'active']);
-            return back()->with('success', 'Kamar diaktifkan');
-        }
-        return back()->with('error', 'Penghuni tidak memiliki kamar');
-    }
-
-    public function deactivateRoom(User $tenant)
-    {
-        if ($tenant->room) {
-            $tenant->room->update(['status' => 'inactive']);
-            return back()->with('success', 'Kamar dinonaktifkan');
-        }
-        return back()->with('error', 'Penghuni tidak memiliki kamar');
-    }
+    // Room status activation/deactivation removed as room status is not used
 }
 
 

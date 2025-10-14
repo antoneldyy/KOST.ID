@@ -29,8 +29,25 @@ class RoomController extends Controller
         $validated = $request->validate([
             'number' => 'required|string|max:50|unique:rooms,number,' . $room->id,
             'user_id' => 'nullable|exists:users,id',
+            'tenant_status' => 'nullable|in:active,deactive',
         ]);
-        $room->update($validated);
+        // If assigning a user to this room, make sure that user is not assigned elsewhere
+        if (!empty($validated['user_id'])) {
+            // Detach user from any other room
+            Room::where('user_id', $validated['user_id'])
+                ->where('id', '!=', $room->id)
+                ->update(['user_id' => null]);
+        }
+
+        $room->update(collect($validated)->only(['number','user_id'])->toArray());
+
+        // Optionally update tenant status if provided
+        if (!empty($validated['tenant_status']) && !empty($validated['user_id'])) {
+            $tenant = User::find($validated['user_id']);
+            if ($tenant) {
+                $tenant->update(['status' => $validated['tenant_status']]);
+            }
+        }
         return back()->with('success', 'Kamar diperbarui');
     }
 

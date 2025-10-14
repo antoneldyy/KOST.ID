@@ -9,7 +9,7 @@
           <div class="dropdown">
             <button class="btn btn-outline-primary dropdown-toggle" type="button" id="filterDropdown" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
               <i class="fas fa-filter"></i> 
-              @if(request('status') == 'inactive')
+              @if(request('status') == 'deactive')
                 Nonaktif
               @elseif(request('status') == 'all')
                 Semua
@@ -21,7 +21,7 @@
               <a class="dropdown-item {{ request('status') == 'active' || !request('status') ? 'active' : '' }}" href="#" onclick="filterTenants('active')">
                 <i class="fas fa-check-circle text-success"></i> Aktif
               </a>
-              <a class="dropdown-item {{ request('status') == 'inactive' ? 'active' : '' }}" href="#" onclick="filterTenants('inactive')">
+              <a class="dropdown-item {{ request('status') == 'deactive' ? 'active' : '' }}" href="#" onclick="filterTenants('deactive')">
                 <i class="fas fa-times-circle text-danger"></i> Nonaktif
               </a>
               <a class="dropdown-item {{ request('status') == 'all' ? 'active' : '' }}" href="#" onclick="filterTenants('all')">
@@ -41,6 +41,22 @@
             </div>
           </div>
           <div class="card-body">
+            @if(session('success'))
+            <div class="alert alert-success alert-dismissible fade show" role="alert">
+              {{ session('success') }}
+              <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                <span aria-hidden="true">&times;</span>
+              </button>
+            </div>
+            @endif
+            @if($errors->any())
+            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+              {{ $errors->first() }}
+              <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                <span aria-hidden="true">&times;</span>
+              </button>
+            </div>
+            @endif
             <div class="table-responsive">
               <table class="table table-striped">
                 <thead>
@@ -52,7 +68,6 @@
                     <th>No. HP</th>
                     <th>KTP</th>
                     <th>Status Penghuni</th>
-                    <th>Status Kamar</th>
                     <th>History Bayar</th>
                     <th>Aksi</th>
                   </tr>
@@ -76,34 +91,6 @@
                       <span class="badge badge-{{ $tenant->status == 'active' ? 'success' : 'danger' }}">
                         {{ $tenant->status == 'active' ? 'Aktif' : 'Nonaktif' }}
                       </span>
-                    </td>
-                    <td>
-                      @if($tenant->room)
-                        <div class="d-flex align-items-center">
-                          <span class="badge badge-{{ $tenant->room->status == 'active' ? 'success' : 'warning' }} mr-2">
-                            {{ $tenant->room->status == 'active' ? 'Aktif' : 'Nonaktif' }}
-                          </span>
-                          @if($tenant->room->status == 'active')
-                            <form action="{{ route('tenants.deactivate-room', $tenant) }}" method="POST" class="d-inline" onsubmit="return confirm('Nonaktifkan kamar ini?')">
-                              @csrf
-                              @method('PATCH')
-                              <button class="btn btn-xs btn-outline-warning" title="Nonaktifkan Kamar">
-                                <i class="fas fa-bed"></i>
-                              </button>
-                            </form>
-                          @else
-                            <form action="{{ route('tenants.activate-room', $tenant) }}" method="POST" class="d-inline" onsubmit="return confirm('Aktifkan kamar ini?')">
-                              @csrf
-                              @method('PATCH')
-                              <button class="btn btn-xs btn-outline-success" title="Aktifkan Kamar">
-                                <i class="fas fa-bed"></i>
-                              </button>
-                            </form>
-                          @endif
-                        </div>
-                      @else
-                        <span class="badge badge-secondary">-</span>
-                      @endif
                     </td>
                     <td>
                       <button class="btn btn-sm btn-info" onclick="loadPayments({{ $tenant->id }})" data-toggle="collapse" data-target="#payments{{ $tenant->id }}">Lihat</button>
@@ -134,7 +121,7 @@
                     </td>
                   </tr>
                   <tr class="collapse" id="payments{{ $tenant->id }}">
-                    <td colspan="10">
+                    <td colspan="9">
                       <div id="payments-body-{{ $tenant->id }}">Loading...</div>
                     </td>
                   </tr>
@@ -152,6 +139,23 @@
                             <div class="form-group">
                               <label>Nama</label>
                               <input type="text" class="form-control" name="name" value="{{ $tenant->name }}" required>
+                            </div>
+                            <div class="form-group">
+                              <label>Pindahkan/Atur Kamar</label>
+                              <select class="form-control" name="room_id">
+                                <option value="">- Tidak ada -</option>
+                                @foreach(\App\Models\Room::with('tenant')->orderBy('number')->get() as $room)
+                                  <option value="{{ $room->id }}" 
+                                    {{ optional($tenant->room)->id == $room->id ? 'selected' : '' }}
+                                    {{ $room->user_id && $room->user_id != $tenant->id ? 'disabled' : '' }}>
+                                    {{ $room->number }}
+                                    @if($room->tenant && $room->tenant->id != $tenant->id)
+                                      - terisi oleh {{ $room->tenant->name }}
+                                    @endif
+                                  </option>
+                                @endforeach
+                              </select>
+                              <small class="form-text text-muted">Hanya kamar kosong yang bisa dipilih.</small>
                             </div>
                             <div class="form-group">
                               <label>Email</label>
@@ -297,7 +301,7 @@ function filterTenants(status) {
   
   // Update dropdown button text
   const dropdownButton = document.getElementById('filterDropdown');
-  const statusText = status === 'active' ? 'Aktif' : status === 'inactive' ? 'Nonaktif' : 'Semua';
+  const statusText = status === 'active' ? 'Aktif' : status === 'deactive' ? 'Nonaktif' : 'Semua';
   dropdownButton.innerHTML = `<i class="fas fa-filter"></i> ${statusText}`;
   
   window.location.href = url.toString();
