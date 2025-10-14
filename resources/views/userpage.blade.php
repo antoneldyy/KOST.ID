@@ -50,19 +50,9 @@
                 </div>
             </div>
 
-            <!-- Grafik Pembayaran -->
+            <!-- Kalender -->
             <div class="col-lg-4">
                 <div class="card">
-                    <div class="card-header">
-                        <h4>Grafik Pembayaran Bulanan</h4>
-                    </div>
-                    <div class="card-body">
-                        <canvas id="paymentChart" height="180"></canvas>
-                    </div>
-                </div>
-
-                <!-- Kalender -->
-                <div class="card mt-4">
                     <div class="card-header">
                         <h4>Kalender Pembayaran</h4>
                     </div>
@@ -77,42 +67,11 @@
 @endsection
 
 @section('js')
-<!-- Chart.js -->
-<script src="{{ asset('stisla/assets/modules/chart.min.js') }}"></script>
-
 <!-- FullCalendar -->
 <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.css" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js"></script>
 
 <script>
-    // === Grafik Pembayaran ===
-    const ctx = document.getElementById('paymentChart').getContext('2d');
-    const paymentChart = new Chart(ctx, {
-        type: 'bar',
-        data: {
-            labels: {!! json_encode($labels) !!},
-            datasets: [{
-                label: 'Total Pembayaran (Rp)',
-                data: {!! json_encode($totals) !!},
-                backgroundColor: '#6777ef',
-                borderRadius: 5
-            }]
-        },
-        options: {
-            responsive: true,
-            scales: {
-                y: {
-                    beginAtZero: true,
-                    ticks: {
-                        callback: function(value) {
-                            return 'Rp ' + value.toLocaleString('id-ID');
-                        }
-                    }
-                }
-            }
-        }
-    });
-
     // === Kalender Pembayaran ===
     document.addEventListener('DOMContentLoaded', function () {
         const calendarEl = document.getElementById('calendar');
