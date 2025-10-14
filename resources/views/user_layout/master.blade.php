@@ -53,10 +53,10 @@
       <div class="navbar-bg"></div>
 
       {{-- navbar --}}
-      @include('layout._navbar')
+      @include('user_layout._navbar')
 
       {{-- sidebar --}}
-      @include('layout._sidebar')
+      @include('user_layout._sidebar')
 
       <!-- Main Content -->
       @yield('content')

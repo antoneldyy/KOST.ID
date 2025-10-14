@@ -8,21 +8,21 @@
           </div>
           <ul class="sidebar-menu">
             <li>
-              <a href="/admin/dashboard" class="nav-link" {{ (request()->is('admin/dashboard')) ? 'active' : '' }}>
+              <a href="/user/userpage" class="nav-link" {{ (request()->is('user/userpage')) ? 'active' : '' }}>
                 <span>Dashboard</span>
             </a>
             </li>
             <li>
-              <a href="/admin/rooms" class="nav-link" {{ (request()->is('admin/rooms')) ? 'active' : '' }}>
-                <span>Kamar</span>
+              <a href="/user/payment/create" class="nav-link" {{ (request()->is('user/payment/create')) ? 'active' : '' }}>
+                <span>Pembayaran</span>
             </a>
             </li>
             <li>
-              <a href="/admin/tenants" class="nav-link" {{ (request()->is('admin/tenants')) ? 'active' : '' }}>
-                <span>Penghuni</span>
+              <a href="/user/payment" class="nav-link" {{ (request()->is('user/payment')) ? 'active' : '' }}>
+                <span>Riwayat Transaksi</span>
             </a>
             </li>
-            
+
           </ul>
 
           <div class="mt-4 mb-4 p-3 hide-sidebar-mini">
