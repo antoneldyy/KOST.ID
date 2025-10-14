@@ -31,6 +31,7 @@
             </button>
           </div>
           @endif
+
           <div class="table-responsive">
             <table class="table table-striped">
               <thead>
@@ -62,6 +63,7 @@
                     </div>
                   </td>
                 </tr>
+
                 <tr class="collapse" id="payments{{ $room->id }}">
                   <td colspan="4">
                     <div id="payments-body-{{ $room->id }}">
@@ -73,13 +75,16 @@
                     </div>
                   </td>
                 </tr>
+
+                {{-- Modal Edit Room --}}
                 <div class="modal fade" tabindex="-1" role="dialog" id="modalEdit{{ $room->id }}">
                   <div class="modal-dialog" role="document">
                     <div class="modal-content">
                       <form method="POST" action="{{ route('rooms.update',$room) }}">
                         @csrf
                         @method('PUT')
-                        <div class="modal-header"><h5 class="modal-title">Edit Kamar</h5>
+                        <div class="modal-header">
+                          <h5 class="modal-title">Edit Kamar</h5>
                           <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
                         </div>
                         <div class="modal-body">
@@ -125,7 +130,33 @@
     </div>
   </section>
 </div>
+
+{{-- Modal Tambah Kamar --}}
+<div class="modal fade" tabindex="-1" role="dialog" id="modalCreate">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+      <form method="POST" action="{{ route('rooms.store') }}">
+        @csrf
+        <div class="modal-header">
+          <h5 class="modal-title">Tambah Kamar</h5>
+          <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+        </div>
+        <div class="modal-body">
+          <div class="form-group">
+            <label>Nomor Kamar</label>
+            <input type="text" class="form-control" name="number" placeholder="Contoh: A01" required>
+          </div>
+        </div>
+        <div class="modal-footer bg-whitesmoke br">
+          <button type="submit" class="btn btn-primary">Simpan</button>
+          <button type="button" class="btn btn-secondary" data-dismiss="modal">Batal</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
 @endsection
+
 
 @section('js')
 <script>
@@ -145,26 +176,33 @@ function loadPayments(roomId) {
       html += '<thead class="thead-light"><tr><th>Bulan/Tahun</th><th>Jumlah</th><th>Bukti Bayar</th><th>Status</th><th>Aksi</th></tr></thead><tbody>';
 
       payments.forEach(payment => {
-        const statusBadge = payment.approved_at ?
-          '<span class="badge badge-success">Disetujui</span>' :
-          (payment.paid_at ? '<span class="badge badge-warning">Menunggu ACC</span>' : '<span class="badge badge-secondary">Belum bayar</span>');
+        const statusBadge = (!payment.approved_at && payment.status === 'rejected')
+            ? '<span class="badge badge-danger">Ditolak</span>'
+            : (payment.approved_at
+                ? '<span class="badge badge-success">Disetujui</span>'
+                : (payment.paid_at
+                    ? '<span class="badge badge-warning">Menunggu ACC</span>'
+                    : '<span class="badge badge-secondary">Belum bayar</span>'));
 
-        const proofButton = payment.proof_path ?
-          `<a href="/storage/${payment.proof_path}" target="_blank" class="btn btn-sm btn-info"><i class="fas fa-eye"></i> Lihat</a>` :
-          '<span class="text-muted">-</span>';
+        const proofButton = payment.proof_path
+          ? `<a href="/storage/${payment.proof_path}" target="_blank" class="btn btn-sm btn-info"><i class="fas fa-eye"></i> Lihat</a>`
+          : '<span class="text-muted">-</span>';
 
-        // Tampilkan tombol Approve/Reject hanya jika sudah dibayar tapi belum di-ACC
-        const actionButtons = (payment.paid_at && !payment.approved_at && !payment.approved_by) ?
-          `<button class="btn btn-sm btn-success" onclick="approvePayment(${payment.id})"><i class="fas fa-check"></i> Approve</button>
-           <button class="btn btn-sm btn-danger" onclick="rejectPayment(${payment.id})"><i class="fas fa-times"></i> Reject</button>` :
-          '-';
+        const actionButtons = (payment.paid_at && !payment.approved_at && payment.status !== 'rejected')
+  ? `<button class="btn btn-sm btn-success" onclick="approvePayment(${payment.id}, this)">
+       <i class="fas fa-check"></i> Approve
+     </button>
+     <button class="btn btn-sm btn-danger" onclick="rejectPayment(${payment.id}, this)">
+       <i class="fas fa-times"></i> Reject
+     </button>`
+  : '-';
 
-        html += `<tr>
+        html += `<tr id="payment-row-${payment.id}">
           <td>${payment.month}/${payment.year}</td>
           <td>Rp ${payment.amount.toLocaleString()}</td>
           <td>${proofButton}</td>
-          <td>${statusBadge}</td>
-          <td>${actionButtons}</td>
+          <td class="status-cell">${statusBadge}</td>
+          <td class="action-cell">${actionButtons}</td>
         </tr>`;
       });
 
@@ -197,37 +235,44 @@ function deleteRoom(roomId) {
   }
 }
 
-function approvePayment(paymentId) {
+// ✅ UPDATE UI TANPA RELOAD SETELAH APPROVE/REJECT
+function approvePayment(paymentId, btn) {
   if (confirm('Approve pembayaran ini?')) {
-    fetch('/admin/payments/' + paymentId + '/approve', {
+    fetch(`/admin/payments/${paymentId}/approve`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'X-CSRF-TOKEN': '{{ csrf_token() }}'
       }
     })
-    .then(response => response.json())
+    .then(r => r.json())
     .then(data => {
-      if (data.success) location.reload();
-      else alert(data.message || 'Gagal approve pembayaran');
+      if (data.success) {
+        const row = document.getElementById(`payment-row-${paymentId}`);
+        row.querySelector('.status-cell').innerHTML = '<span class="badge badge-success">Disetujui</span>';
+        row.querySelector('.action-cell').innerHTML = '-';
+      } else alert(data.message || 'Gagal approve pembayaran');
     })
     .catch(() => alert('Gagal approve pembayaran'));
   }
 }
 
-function rejectPayment(paymentId) {
+function rejectPayment(paymentId, btn) {
   if (confirm('Reject pembayaran ini?')) {
-    fetch('/admin/payments/' + paymentId + '/reject', {
+    fetch(`/admin/payments/${paymentId}/reject`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'X-CSRF-TOKEN': '{{ csrf_token() }}'
       }
     })
-    .then(response => response.json())
+    .then(r => r.json())
     .then(data => {
-      if (data.success) location.reload();
-      else alert(data.message || 'Gagal reject pembayaran');
+      if (data.success) {
+        const row = document.getElementById(`payment-row-${paymentId}`);
+        row.querySelector('.status-cell').innerHTML = '<span class="badge badge-danger">Ditolak</span>';
+        row.querySelector('.action-cell').innerHTML = '-';
+      } else alert(data.message || 'Gagal reject pembayaran');
     })
     .catch(() => alert('Gagal reject pembayaran'));
   }
