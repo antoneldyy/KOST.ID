@@ -142,32 +142,33 @@
 function loadPayments(roomId) {
   const target = document.getElementById('payments-body-' + roomId);
   target.innerHTML = '<div class="text-center py-3"><div class="spinner-border text-primary" role="status"><span class="sr-only">Loading...</span></div></div>';
-  
+
   fetch('/admin/rooms/' + roomId + '/payments')
     .then(r => r.json())
     .then(payments => {
-      if (!payments.length) { 
-        target.innerHTML = '<div class="text-center py-3 text-muted">Belum ada bukti pembayaran</div>'; 
-        return; 
+      if (!payments.length) {
+        target.innerHTML = '<div class="text-center py-3 text-muted">Belum ada bukti pembayaran</div>';
+        return;
       }
-      
+
       let html = '<div class="table-responsive"><table class="table table-sm table-bordered">';
       html += '<thead class="thead-light"><tr><th>Bulan/Tahun</th><th>Jumlah</th><th>Bukti Bayar</th><th>Status</th><th>Aksi</th></tr></thead><tbody>';
-      
+
       payments.forEach(payment => {
-        const statusBadge = payment.paid_at ? 
-          '<span class="badge badge-success">Lunas</span>' : 
-          '<span class="badge badge-warning">Menunggu</span>';
-        
-        const proofButton = payment.proof_path ? 
+        const statusBadge = payment.approved_at ?
+          '<span class="badge badge-success">Disetujui</span>' :
+          (payment.paid_at ? '<span class="badge badge-warning">Menunggu ACC</span>' : '<span class="badge badge-secondary">Belum bayar</span>');
+
+        const proofButton = payment.proof_path ?
           `<a href="/storage/${payment.proof_path}" target="_blank" class="btn btn-sm btn-info"><i class="fas fa-eye"></i> Lihat</a>` :
           '<span class="text-muted">-</span>';
-        
-        const actionButtons = !payment.paid_at ? 
+
+        // Tampilkan tombol Approve/Reject hanya jika sudah dibayar tapi belum di-ACC
+        const actionButtons = (payment.paid_at && !payment.approved_at && !payment.approved_by) ?
           `<button class="btn btn-sm btn-success" onclick="approvePayment(${payment.id})"><i class="fas fa-check"></i> Approve</button>
            <button class="btn btn-sm btn-danger" onclick="rejectPayment(${payment.id})"><i class="fas fa-times"></i> Reject</button>` :
-          '<span class="text-muted">-</span>';
-        
+          '-';
+
         html += `<tr>
           <td>${payment.month}/${payment.year}</td>
           <td>Rp ${payment.amount.toLocaleString()}</td>
@@ -176,7 +177,7 @@ function loadPayments(roomId) {
           <td>${actionButtons}</td>
         </tr>`;
       });
-      
+
       html += '</tbody></table></div>';
       target.innerHTML = html;
     })
@@ -188,17 +189,17 @@ function deleteRoom(roomId) {
     const form = document.createElement('form');
     form.method = 'POST';
     form.action = '/admin/rooms/' + roomId;
-    
+
     const csrfToken = document.createElement('input');
     csrfToken.type = 'hidden';
     csrfToken.name = '_token';
     csrfToken.value = '{{ csrf_token() }}';
-    
+
     const methodField = document.createElement('input');
     methodField.type = 'hidden';
     methodField.name = '_method';
     methodField.value = 'DELETE';
-    
+
     form.appendChild(csrfToken);
     form.appendChild(methodField);
     document.body.appendChild(form);
@@ -217,11 +218,8 @@ function approvePayment(paymentId) {
     })
     .then(response => response.json())
     .then(data => {
-      if (data.success) {
-        location.reload();
-      } else {
-        alert('Gagal approve pembayaran');
-      }
+      if (data.success) location.reload();
+      else alert(data.message || 'Gagal approve pembayaran');
     })
     .catch(() => alert('Gagal approve pembayaran'));
   }
@@ -238,11 +236,8 @@ function rejectPayment(paymentId) {
     })
     .then(response => response.json())
     .then(data => {
-      if (data.success) {
-        location.reload();
-      } else {
-        alert('Gagal reject pembayaran');
-      }
+      if (data.success) location.reload();
+      else alert(data.message || 'Gagal reject pembayaran');
     })
     .catch(() => alert('Gagal reject pembayaran'));
   }
