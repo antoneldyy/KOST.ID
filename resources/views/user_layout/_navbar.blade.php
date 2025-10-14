@@ -1,4 +1,4 @@
-<nav class="navbar navbar-expand-lg main-navbar">
+<nav class="navbar navbar-expand-lg main-navbar sticky-top">
   <ul class="navbar-nav mr-auto">
     <li>
       <a href="#" data-toggle="sidebar" class="nav-link nav-link-lg">

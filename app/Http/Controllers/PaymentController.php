@@ -63,6 +63,17 @@ class PaymentController extends Controller
             'proof_path' => 'required|file|mimes:jpg,jpeg,png|max:2048',
         ]);
 
+        // ✅ 2. Cek apakah user sudah membayar di bulan & tahun yang sama
+        $existing = Payment::where('user_id', $request->user_id)
+            ->where('month', $request->month)
+            ->where('year', $request->year)
+            ->exists();
+
+        if ($existing) {
+            return redirect()->route('payment.create')
+                ->with('error', 'Anda sudah melakukan pembayaran untuk bulan dan tahun ini.');
+        }
+
         // 2️⃣ Upload file
         if ($request->hasFile('proof_path')) {
             $file = $request->file('proof_path');

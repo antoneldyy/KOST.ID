@@ -8,6 +8,8 @@
     </div>
 
     <div class="section-body">
+
+      {{-- ✅ Pesan sukses --}}
       @if (session('success'))
         <div class="alert alert-success alert-dismissible fade show">
           {{ session('success') }}
@@ -15,6 +17,7 @@
         </div>
       @endif
 
+      {{-- ✅ Pesan error umum (validasi Laravel) --}}
       @if ($errors->any())
         <div class="alert alert-danger">
           <strong>Terjadi kesalahan!</strong>
@@ -23,6 +26,14 @@
               <li>{{ $error }}</li>
             @endforeach
           </ul>
+        </div>
+      @endif
+
+      {{-- ✅ Pesan error khusus jika user sudah membayar bulan ini --}}
+      @if (session('error'))
+        <div class="alert alert-warning alert-dismissible fade show">
+          {{ session('error') }}
+          <button type="button" class="close" data-dismiss="alert">&times;</button>
         </div>
       @endif
 
@@ -43,8 +54,11 @@
             <input type="hidden" name="user_id" value="{{ auth()->id() }}">
 
             @if ($room)
-                <input type="hidden" name="room_id" value="{{ $room->id }}">
-                <input type="text" class="form-control" value="Kamar No. {{ $room->number }}" readonly>
+                <div class="form-group">
+                  <label for="room_display">Kamar</label>
+                  <input type="hidden" name="room_id" value="{{ $room->id }}">
+                  <input type="text" id="room_display" class="form-control" value="Kamar No. {{ $room->number }}" readonly>
+                </div>
             @else
                 <div class="alert alert-warning">
                     Kamu belum memiliki kamar yang terdaftar.
@@ -67,7 +81,7 @@
 
             <div class="form-group">
               <label for="amount">Jumlah Pembayaran (Rp)</label>
-              <input type="number" name="amount" id="amount" class="form-control" placeholder="Masukkan nominal pembayaran" required>
+              <input type="number" name="amount" id="amount" class="form-control" value="800000" readonly>
             </div>
 
             <div class="form-group">
@@ -78,7 +92,7 @@
             <div class="form-group">
               <label for="proof_path">Bukti Pembayaran</label>
               <input type="file" name="proof_path" id="proof_path" class="form-control-file" accept="image/*" required>
-              <small class="text-muted">Unggah foto/scan bukti transfer (JPG/PNG).</small>
+              <small class="text-muted">Unggah foto/scan bukti transfer (JPG/PNG, max 2MB).</small>
             </div>
 
             <button type="submit" class="btn btn-primary">Kirim Pembayaran</button>

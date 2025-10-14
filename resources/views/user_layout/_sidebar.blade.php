@@ -16,13 +16,6 @@
               <a href="/user/payment/create" class="nav-link" {{ (request()->is('user/payment/create')) ? 'active' : '' }}>
                 <span>Pembayaran</span>
             </a>
-            </li>
-            <li>
-              <a href="/user/payment" class="nav-link" {{ (request()->is('user/payment')) ? 'active' : '' }}>
-                <span>Riwayat Transaksi</span>
-            </a>
-            </li>
-
           </ul>
 
           <div class="mt-4 mb-4 p-3 hide-sidebar-mini">
