@@ -51,6 +51,9 @@ Route::group(['middleware' => ['auth', 'check_role:admin'], 'prefix' => 'admin']
     Route::put('/rooms/{room}', [RoomController::class, 'update'])->name('rooms.update');
     Route::delete('/rooms/{room}', [RoomController::class, 'destroy'])->name('rooms.destroy');
     Route::get('/rooms/{room}/payments', [RoomController::class, 'payments'])->name('rooms.payments');
+    Route::post('/admin/payments/{payment}/approve', [RoomController::class, 'approvePayment'])->name('payments.approve');
+    Route::post('/admin/payments/{payment}/reject', [RoomController::class, 'rejectPayment'])->name('payments.reject');
+
 
     Route::get('/tenants', [TenantController::class, 'index'])->name('tenants.index');
     Route::post('/tenants', [TenantController::class, 'store'])->name('tenants.store');
