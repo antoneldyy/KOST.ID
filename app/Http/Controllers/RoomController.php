@@ -45,6 +45,37 @@ class RoomController extends Controller
         $payments = $room->payments()->with('user')->orderByDesc('year')->orderByDesc('month')->get();
         return response()->json($payments);
     }
+
+    // Di RoomController atau lebih baik buat PaymentController
+    public function approvePayment(Payment $payment)
+    {
+        if ($payment->approved_at || $payment->approved_by) {
+            return response()->json(['success' => false, 'message' => 'Pembayaran sudah di-ACC']);
+        }
+
+        $payment->update([
+            'approved_at' => now(),
+            'approved_by' => auth()->id(),
+        ]);
+
+        return response()->json(['success' => true]);
+    }
+
+    public function rejectPayment(Payment $payment)
+    {
+        if ($payment->approved_at || $payment->approved_by) {
+            return response()->json(['success' => false, 'message' => 'Pembayaran sudah di-ACC']);
+        }
+
+        $payment->update([
+            'approved_at' => null,
+            'approved_by' => null,
+            'proof_path' => null, // optional: hapus bukti jika di reject
+        ]);
+
+        return response()->json(['success' => true]);
+    }
+
 }
 
 
