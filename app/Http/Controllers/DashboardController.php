@@ -20,7 +20,14 @@ class DashboardController extends Controller
         $occupiedRooms = Room::whereNotNull('user_id')->count();
         $emptyRooms = $totalRooms - $occupiedRooms;
 
-        $monthlyRevenue = Payment::where('month', $month)->where('year', $year)->sum('amount');
+        // Only count approved payments toward revenue when status column exists, else fallback to paid_at
+        $paymentsQuery = Payment::where('month', $month)->where('year', $year);
+        if (\Schema::hasColumn('payments', 'status')) {
+            $paymentsQuery->where('status', 'approved');
+        } else {
+            $paymentsQuery->whereNotNull('approved_at');
+        }
+        $monthlyRevenue = $paymentsQuery->sum('amount');
 
         $paidCount = Payment::where('month', $month)->where('year', $year)->whereNotNull('paid_at')->count();
         $unpaidCount = Payment::where('month', $month)->where('year', $year)->whereNull('paid_at')->count();

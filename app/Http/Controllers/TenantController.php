@@ -119,7 +119,11 @@ class TenantController extends Controller
 
     public function payments(User $tenant)
     {
-        $payments = $tenant->payments()->orderByDesc('year')->orderByDesc('month')->get();
+        $payments = $tenant->payments()
+            ->where('status', 'approved')
+            ->orderByDesc('year')
+            ->orderByDesc('month')
+            ->get();
         return response()->json($payments);
     }
 

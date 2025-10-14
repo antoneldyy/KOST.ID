@@ -44,24 +44,7 @@
               <tbody>
                 @foreach($rooms as $room)
                 <tr>
-                  <td>
-                    <div class="d-flex align-items-center">
-                      <span>{{ $room->number }}</span>
-                      <div class="dropdown ml-2">
-                        <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" id="roomMenu{{ $room->id }}" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                          <i class="fas fa-chevron-down"></i>
-                        </button>
-                        <div class="dropdown-menu" aria-labelledby="roomMenu{{ $room->id }}">
-                          <a class="dropdown-item" href="#" data-toggle="modal" data-target="#modalEdit{{ $room->id }}">
-                            <i class="fas fa-edit text-primary"></i> Edit
-                          </a>
-                          <a class="dropdown-item" href="#" onclick="deleteRoom({{ $room->id }})">
-                            <i class="fas fa-trash text-danger"></i> Hapus
-                          </a>
-                        </div>
-                      </div>
-                    </div>
-                  </td>
+                  <td>{{ $room->number }}</td>
                   <td>{{ optional($room->tenant)->name ?? '-' }}</td>
                   <td>
                     <button class="btn btn-sm btn-info" onclick="loadPayments({{ $room->id }})" data-toggle="collapse" data-target="#payments{{ $room->id }}">
@@ -69,7 +52,14 @@
                     </button>
                   </td>
                   <td>
-                    <span class="badge badge-secondary">-</span>
+                    <div class="btn-group">
+                      <button class="btn btn-sm btn-warning" data-toggle="modal" data-target="#modalEdit{{ $room->id }}">
+                        <i class="fas fa-edit"></i> Edit
+                      </button>
+                      <button class="btn btn-sm btn-danger" onclick="deleteRoom({{ $room->id }})">
+                        <i class="fas fa-trash"></i> Hapus
+                      </button>
+                    </div>
                   </td>
                 </tr>
                 <tr class="collapse" id="payments{{ $room->id }}">

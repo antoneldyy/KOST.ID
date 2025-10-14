@@ -279,11 +279,13 @@ function loadPayments(userId) {
   fetch('/admin/tenants/' + userId + '/payments')
     .then(r => r.json())
     .then(rows => {
-      if (!rows.length) { target.innerHTML = 'Belum ada pembayaran'; return; }
+      // Only show approved payments in history
+      rows = Array.isArray(rows) ? rows.filter(p => p.status === 'approved') : [];
+      if (!rows.length) { target.innerHTML = 'Belum ada pembayaran disetujui'; return; }
       let html = '<div class="table-responsive"><table class="table table-sm">';
       html += '<tr><th>Bulan</th><th>Tahun</th><th>Jumlah</th><th>Status</th><th>Tanggal</th></tr>';
       rows.forEach(p => {
-        html += `<tr><td>${p.month}</td><td>${p.year}</td><td>${p.amount}</td><td>${p.paid_at ? 'Lunas' : 'Belum'}</td><td>${p.paid_at ?? '-'}</td></tr>`;
+        html += `<tr><td>${p.month}</td><td>${p.year}</td><td>${p.amount}</td><td>${p.status}</td><td>${p.paid_at ?? '-'}</td></tr>`;
       });
       html += '</table></div>';
       target.innerHTML = html;

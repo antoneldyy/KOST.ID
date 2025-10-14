@@ -31,9 +31,13 @@ class PaymentController extends Controller
         $path = $request->file('proof')->store('proofs', 'public');
 
         // update data pembayaran
+        // Ensure payment is linked to current room
+        $currentRoomId = optional(Auth::user()->room)->id;
         $payment->update([
             'proof_path' => $path,
             'paid_at' => now(),
+            'status' => 'pending',
+            'room_id' => $currentRoomId,
         ]);
 
         return redirect()->route('payment.index')->with('success', 'Bukti pembayaran berhasil diunggah!');
@@ -102,54 +106,69 @@ class PaymentController extends Controller
 
     public function approve(Payment $payment)
     {
-        $payment->update([
-            'paid_at' => $payment->paid_at ?? now()->toDateString(),
-            'approved_at' => now(),
-            'approved_by' => auth()->id(),
-        ]);
+        try {
+            $payment->update([
+                'paid_at' => $payment->paid_at ?? now()->toDateString(),
+                'approved_at' => now(),
+                'approved_by' => auth()->id(),
+                'status' => 'approved',
+            ]);
 
-        // Create notification for user
-        Notification::create([
-            'type' => 'payment_approved',
-            'title' => 'Pembayaran Disetujui',
-            'message' => "Pembayaran untuk kamar {$payment->room->number} bulan {$payment->month}/{$payment->year} telah disetujui.",
-            'data' => [
-                'payment_id' => $payment->id,
-                'user_id' => $payment->user_id,
-                'room_id' => $payment->room_id
-            ]
-        ]);
+            // Create notification for user
+            $roomNum = optional($payment->room)->number ?? '-';
+            Notification::create([
+                'type' => 'payment_approved',
+                'title' => 'Pembayaran Disetujui',
+                'message' => "Pembayaran untuk kamar {$roomNum} bulan {$payment->month}/{$payment->year} telah disetujui.",
+                'data' => [
+                    'payment_id' => $payment->id,
+                    'user_id' => $payment->user_id,
+                    'room_id' => $payment->room_id
+                ]
+            ]);
 
-        \App\Models\Activity::create([
-            'user_id' => auth()->id(),
-            'action' => 'approve_payment',
-            'meta' => ['payment_id' => $payment->id, 'user_id' => $payment->user_id, 'month' => $payment->month, 'year' => $payment->year],
-        ]);
+            \App\Models\Activity::create([
+                'user_id' => auth()->id(),
+                'action' => 'approve_payment',
+                'meta' => ['payment_id' => $payment->id, 'user_id' => $payment->user_id, 'month' => $payment->month, 'year' => $payment->year],
+            ]);
 
-        return response()->json(['success' => true, 'message' => 'Pembayaran disetujui']);
+            return response()->json(['success' => true, 'message' => 'Pembayaran disetujui']);
+        } catch (\Throwable $e) {
+            return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
+        }
     }
 
     public function reject(Payment $payment)
     {
-        // Create notification for user
-        Notification::create([
-            'type' => 'payment_rejected',
-            'title' => 'Pembayaran Ditolak',
-            'message' => "Pembayaran untuk kamar {$payment->room->number} bulan {$payment->month}/{$payment->year} telah ditolak. Silakan upload bukti pembayaran yang valid.",
-            'data' => [
-                'payment_id' => $payment->id,
-                'user_id' => $payment->user_id,
-                'room_id' => $payment->room_id
-            ]
-        ]);
+        try {
+            $payment->update([
+                'status' => 'rejected',
+            ]);
 
-        \App\Models\Activity::create([
-            'user_id' => auth()->id(),
-            'action' => 'reject_payment',
-            'meta' => ['payment_id' => $payment->id, 'user_id' => $payment->user_id, 'month' => $payment->month, 'year' => $payment->year],
-        ]);
+            // Create notification for user
+            $roomNum = optional($payment->room)->number ?? '-';
+            Notification::create([
+                'type' => 'payment_rejected',
+                'title' => 'Pembayaran Ditolak',
+                'message' => "Pembayaran untuk kamar {$roomNum} bulan {$payment->month}/{$payment->year} telah ditolak. Silakan upload bukti pembayaran yang valid.",
+                'data' => [
+                    'payment_id' => $payment->id,
+                    'user_id' => $payment->user_id,
+                    'room_id' => $payment->room_id
+                ]
+            ]);
 
-        return response()->json(['success' => true, 'message' => 'Pembayaran ditolak']);
+            \App\Models\Activity::create([
+                'user_id' => auth()->id(),
+                'action' => 'reject_payment',
+                'meta' => ['payment_id' => $payment->id, 'user_id' => $payment->user_id, 'month' => $payment->month, 'year' => $payment->year],
+            ]);
+
+            return response()->json(['success' => true, 'message' => 'Pembayaran ditolak']);
+        } catch (\Throwable $e) {
+            return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
+        }
     }
 }
 
