@@ -59,14 +59,16 @@ class RoomController extends Controller
 
     public function payments(Room $room)
     {
-        $latest = $room->payments()
-            ->whereNotNull('proof_path')
+        $payments = $room->payments()
+            ->with('user')
             ->orderByDesc('year')
             ->orderByDesc('month')
             ->orderByDesc('updated_at')
-            ->first();
-        return response()->json($latest ? [$latest] : []);
+            ->get();
+
+        return response()->json($payments);
     }
+
 
     // Di RoomController atau lebih baik buat PaymentController
     public function approvePayment(Payment $payment)
