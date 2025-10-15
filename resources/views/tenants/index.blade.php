@@ -8,7 +8,7 @@
         <div class="section-header-breadcrumb">
           <div class="dropdown">
             <button class="btn btn-outline-primary dropdown-toggle" type="button" id="filterDropdown" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-              <i class="fas fa-filter"></i> 
+              <i class="fas fa-filter"></i>
               @if(request('status') == 'deactive')
                 Nonaktif
               @elseif(request('status') == 'all')
@@ -42,21 +42,22 @@
           </div>
           <div class="card-body">
             @if(session('success'))
-            <div class="alert alert-success alert-dismissible fade show" role="alert">
-              {{ session('success') }}
-              <button type="button" class="close" data-dismiss="alert" aria-label="Close">
-                <span aria-hidden="true">&times;</span>
-              </button>
-            </div>
+              <div class="alert alert-success alert-dismissible fade show" role="alert">
+                {{ session('success') }}
+                <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                  <span aria-hidden="true">&times;</span>
+                </button>
+              </div>
             @endif
             @if($errors->any())
-            <div class="alert alert-danger alert-dismissible fade show" role="alert">
-              {{ $errors->first() }}
-              <button type="button" class="close" data-dismiss="alert" aria-label="Close">
-                <span aria-hidden="true">&times;</span>
-              </button>
-            </div>
+              <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                {{ $errors->first() }}
+                <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                  <span aria-hidden="true">&times;</span>
+                </button>
+              </div>
             @endif
+
             <div class="table-responsive">
               <table class="table table-striped">
                 <thead>
@@ -97,7 +98,7 @@
                     </td>
                     <td>
                       <div class="btn-group">
-                        <button class="btn btn-sm btn-warning" data-toggle="modal" data-target="#modalEdit{{ $tenant->id }}">
+                        <button class="btn btn-sm btn-warning btn-edit" data-id="{{ $tenant->id }}">
                           <i class="fas fa-edit"></i> Edit
                         </button>
                         @if($tenant->status == 'active')
@@ -126,7 +127,8 @@
                     </td>
                   </tr>
 
-                  <div class="modal fade" tabindex="-1" role="dialog" id="modalEdit{{ $tenant->id }}">
+                  {{-- MODAL EDIT --}}
+                  <div class="modal fade tenant-edit-modal" tabindex="-1" role="dialog" id="modalEdit{{ $tenant->id }}">
                     <div class="modal-dialog" role="document">
                       <div class="modal-content">
                         <form method="POST" action="{{ route('tenants.update',$tenant) }}" enctype="multipart/form-data">
@@ -145,7 +147,7 @@
                               <select class="form-control" name="room_id">
                                 <option value="">- Tidak ada -</option>
                                 @foreach(\App\Models\Room::with('tenant')->orderBy('number')->get() as $room)
-                                  <option value="{{ $room->id }}" 
+                                  <option value="{{ $room->id }}"
                                     {{ optional($tenant->room)->id == $room->id ? 'selected' : '' }}
                                     {{ $room->user_id && $room->user_id != $tenant->id ? 'disabled' : '' }}>
                                     {{ $room->number }}
@@ -155,7 +157,6 @@
                                   </option>
                                 @endforeach
                               </select>
-                              <small class="form-text text-muted">Hanya kamar kosong yang bisa dipilih.</small>
                             </div>
                             <div class="form-group">
                               <label>Email</label>
@@ -173,7 +174,15 @@
                               <label>Alamat</label>
                               <textarea class="form-control" name="address" rows="3">{{ $tenant->address }}</textarea>
                             </div>
-                            {{-- KTP upload removed for edit modal: admin tidak perlu upload ulang KTP saat edit --}}
+                            <div class="form-group">
+                              <label>Update KTP (opsional)</label>
+                              <input type="file" class="form-control" name="ktp" accept="image/*">
+                              @if($tenant->ktp_path)
+                                <small class="form-text text-muted">KTP saat ini:
+                                  <a href="{{ asset('storage/'.$tenant->ktp_path) }}" target="_blank">Lihat</a>
+                                </small>
+                              @endif
+                            </div>
                             <div class="form-group">
                               <label>Password (kosongkan jika tidak diubah)</label>
                               <input type="password" class="form-control" name="password">
@@ -197,6 +206,7 @@
     </section>
   </div>
 
+  {{-- MODAL CREATE --}}
   <div class="modal fade" tabindex="-1" role="dialog" id="modalCreate">
     <div class="modal-dialog" role="document">
       <div class="modal-content">
@@ -227,6 +237,10 @@
               <textarea class="form-control" name="address" rows="3"></textarea>
             </div>
             <div class="form-group">
+              <label>Upload KTP</label>
+              <input type="file" class="form-control" name="ktp" accept="image/*" required>
+            </div>
+            <div class="form-group">
               <label>Pilih Kamar (opsional)</label>
               <select name="room_id" class="form-control">
                 <option value="">- Tidak ada -</option>
@@ -236,7 +250,6 @@
                   </option>
                 @endforeach
               </select>
-              <small class="form-text text-muted">Pilih kamar kosong untuk langsung menempatkan penghuni (opsional).</small>
             </div>
           </div>
           <div class="modal-footer bg-whitesmoke br">
@@ -247,25 +260,6 @@
       </div>
     </div>
   </div>
-
-@endsection
-
-@section('css')
-<style>
-.section-header-breadcrumb .dropdown-menu {
-  min-width: 150px;
-}
-.section-header-breadcrumb .dropdown-item.active {
-  background-color: #007bff;
-  color: white;
-}
-.section-header-breadcrumb .dropdown-item:hover {
-  background-color: #f8f9fa;
-}
-.section-header-breadcrumb .dropdown-item.active:hover {
-  background-color: #0056b3;
-}
-</style>
 @endsection
 
 @section('js')
@@ -276,19 +270,35 @@ function loadPayments(userId) {
   fetch('/admin/tenants/' + userId + '/payments')
     .then(r => r.json())
     .then(rows => {
-      // Only show approved payments in history
-      rows = Array.isArray(rows) ? rows.filter(p => p.status === 'approved') : [];
-      if (!rows.length) { target.innerHTML = 'Belum ada pembayaran disetujui'; return; }
+      if (!Array.isArray(rows) || rows.length === 0) {
+        target.innerHTML = 'Belum ada riwayat pembayaran';
+        return;
+      }
       let html = '<div class="table-responsive"><table class="table table-sm">';
-      html += '<tr><th>Bulan</th><th>Tahun</th><th>Jumlah</th><th>Status</th><th>Tanggal</th></tr>';
+      html += '<tr><th>Bulan</th><th>Tahun</th><th>Jumlah</th><th>Status</th><th>Tanggal Bayar</th></tr>';
       rows.forEach(p => {
-        html += `<tr><td>${p.month}</td><td>${p.year}</td><td>${p.amount}</td><td>${p.status}</td><td>${p.paid_at ?? '-'}</td></tr>`;
+        const status = p.approved_at ? 'Disetujui' : (p.status === 'rejected' ? 'Ditolak' : 'Menunggu');
+        html += `<tr>
+          <td>${p.month}</td>
+          <td>${p.year}</td>
+          <td>${p.amount}</td>
+          <td>${status}</td>
+          <td>${p.paid_at ?? '-'}</td>
+        </tr>`;
       });
       html += '</table></div>';
       target.innerHTML = html;
     })
     .catch(() => target.innerHTML = 'Gagal memuat data');
 }
+
+document.addEventListener('click', function(e) {
+  if (e.target.closest('.btn-edit')) {
+    const id = e.target.closest('.btn-edit').getAttribute('data-id');
+    const modal = document.getElementById('modalEdit' + id);
+    $(modal).appendTo('body').modal('show');
+  }
+});
 
 function filterTenants(status) {
   const url = new URL(window.location);
@@ -297,15 +307,7 @@ function filterTenants(status) {
   } else {
     url.searchParams.set('status', status);
   }
-  
-  // Update dropdown button text
-  const dropdownButton = document.getElementById('filterDropdown');
-  const statusText = status === 'active' ? 'Aktif' : status === 'deactive' ? 'Nonaktif' : 'Semua';
-  dropdownButton.innerHTML = `<i class="fas fa-filter"></i> ${statusText}`;
-  
   window.location.href = url.toString();
 }
 </script>
 @endsection
-
-
