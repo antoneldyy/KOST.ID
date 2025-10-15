@@ -20,7 +20,7 @@ class DashboardController extends Controller
         $occupiedRooms = Room::whereNotNull('user_id')->count();
         $emptyRooms = $totalRooms - $occupiedRooms;
 
-        // Only count approved payments toward revenue when status column exists, else fallback to paid_at
+        // Calculate monthly revenue from approved payments
         $paymentsQuery = Payment::where('month', $month)->where('year', $year);
         if (\Schema::hasColumn('payments', 'status')) {
             $paymentsQuery->where('status', 'approved');
@@ -29,11 +29,22 @@ class DashboardController extends Controller
         }
         $monthlyRevenue = $paymentsQuery->sum('amount');
 
-        $paidCount = Payment::where('month', $month)->where('year', $year)->whereNotNull('paid_at')->count();
-        $unpaidCount = Payment::where('month', $month)->where('year', $year)->whereNull('paid_at')->count();
+        // Calculate payment status for all rooms in the selected month
+        $totalRoomsForMonth = $totalRooms; // All rooms should be considered for payment status
+        $paidCount = Payment::where('month', $month)
+            ->where('year', $year)
+            ->where(function($query) {
+                if (\Schema::hasColumn('payments', 'status')) {
+                    $query->where('status', 'approved');
+                } else {
+                    $query->whereNotNull('approved_at');
+                }
+            })
+            ->count();
+        $unpaidCount = $totalRoomsForMonth - $paidCount;
         
-        // Get recent activities for the current month
-        $recentActivities = Activity::with('user')
+        // Get recent activities for the current month (all users, not just admin)
+        $recentActivities = Activity::with(['user.room'])
             ->whereMonth('created_at', $month)
             ->whereYear('created_at', $year)
             ->latest()

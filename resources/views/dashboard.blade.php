@@ -75,9 +75,6 @@
               <div class="card">
                 <div class="card-header">
                   <h4>Last Transactions</h4>
-                  <div class="card-header-action">
-                    <a href="{{ route('activities.index') }}" class="btn btn-primary">View All <i class="fas fa-chevron-right"></i></a>
-                  </div>
                 </div>
                 <div class="card-body p-0">
                   <div class="table-responsive">
@@ -85,7 +82,7 @@
                       <thead>
                         <tr>
                           <th>Waktu</th>
-                          <th>Admin</th>
+                          <th>User</th>
                           <th>Aktivitas</th>
                           <th>Detail</th>
                       </tr>
@@ -97,8 +94,14 @@
                           <td class="font-weight-600">{{ $activity->user->name }}</td>
                           <td>
                             @switch($activity->action)
+                              @case('upload_payment_proof')
+                                <span class="badge badge-info">Upload Bukti Bayar</span>
+                                @break
                               @case('approve_payment')
                                 <span class="badge badge-success">Approve Pembayaran</span>
+                                @break
+                              @case('reject_payment')
+                                <span class="badge badge-danger">Reject Pembayaran</span>
                                 @break
                               @case('create_room')
                                 <span class="badge badge-info">Tambah Kamar</span>
@@ -108,6 +111,12 @@
                                 @break
                               @case('assign_tenant')
                                 <span class="badge badge-primary">Assign Penghuni</span>
+                                @break
+                              @case('create_tenant')
+                                <span class="badge badge-info">Tambah Penghuni</span>
+                                @break
+                              @case('update_tenant')
+                                <span class="badge badge-warning">Update Penghuni</span>
                                 @break
                               @default
                                 <span class="badge badge-secondary">{{ $activity->action }}</span>
@@ -125,7 +134,11 @@
                                 ({{ $activity->meta['month'] }}/{{ $activity->meta['year'] }})
                               @endif
                             @else
-                              -
+                              @if($activity->user && $activity->user->room)
+                                Kamar {{ $activity->user->room->number }}
+                              @else
+                                -
+                              @endif
                             @endif
                         </td>
                       </tr>

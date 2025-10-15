@@ -35,7 +35,6 @@ class TenantController extends Controller
             'occupation' => 'nullable|string|max:100',
             'address' => 'nullable|string',
             'ktp' => 'required|file|mimes:jpg,jpeg,png,pdf|max:2048',
-            'password' => 'required|string|min:6',
         ]);
         
         // Handle KTP file upload
@@ -44,14 +43,28 @@ class TenantController extends Controller
             $ktpPath = $request->file('ktp')->store('ktp', 'public');
         }
         
+        // Generate a temporary password that user must change
+        $tempPassword = 'temp_' . uniqid();
+        
         $validated['role'] = 'user';
         $validated['status'] = 'active';
-        $validated['password'] = Hash::make($validated['password']);
+        $validated['password'] = Hash::make($tempPassword);
         $validated['ktp_path'] = $ktpPath;
         unset($validated['ktp']); // Remove the file from validated data
         
         $user = User::create($validated);
-        return back()->with('success', 'Penghuni ditambahkan');
+        
+        // Create activity for tenant creation
+        \App\Models\Activity::create([
+            'user_id' => auth()->id(),
+            'action' => 'create_tenant',
+            'meta' => [
+                'tenant_id' => $user->id,
+                'tenant_name' => $user->name,
+            ],
+        ]);
+        
+        return back()->with('success', 'Penghuni ditambahkan. User harus menggunakan "Forgot Password" untuk membuat password baru.');
     }
 
     public function update(Request $request, User $tenant)
@@ -108,6 +121,17 @@ class TenantController extends Controller
                 $tenant->room->update(['user_id' => null]);
             }
         }
+        
+        // Create activity for tenant update
+        \App\Models\Activity::create([
+            'user_id' => auth()->id(),
+            'action' => 'update_tenant',
+            'meta' => [
+                'tenant_id' => $tenant->id,
+                'tenant_name' => $tenant->name,
+            ],
+        ]);
+        
         return back()->with('success', 'Penghuni diperbarui');
     }
 

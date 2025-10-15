@@ -46,6 +46,18 @@ class PaymentController extends Controller
             'status' => 'pending', // status default saat upload bukti
         ]);
 
+        // Create activity for user uploading payment proof
+        \App\Models\Activity::create([
+            'user_id' => Auth::id(),
+            'action' => 'upload_payment_proof',
+            'meta' => [
+                'payment_id' => $payment->id,
+                'month' => $payment->month,
+                'year' => $payment->year,
+                'room_number' => optional(Auth::user()->room)->number,
+            ],
+        ]);
+
         return redirect()->route('payment.index')
             ->with('success', 'Bukti pembayaran berhasil diunggah!');
     }

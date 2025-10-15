@@ -20,7 +20,18 @@ class RoomController extends Controller
         $validated = $request->validate([
             'number' => 'required|string|max:50|unique:rooms,number',
         ]);
-        Room::create($validated);
+        $room = Room::create($validated);
+        
+        // Create activity for room creation
+        \App\Models\Activity::create([
+            'user_id' => auth()->id(),
+            'action' => 'create_room',
+            'meta' => [
+                'room_id' => $room->id,
+                'room_number' => $room->number,
+            ],
+        ]);
+        
         return back()->with('success', 'Kamar ditambahkan');
     }
 
@@ -48,6 +59,18 @@ class RoomController extends Controller
                 $tenant->update(['status' => $validated['tenant_status']]);
             }
         }
+        
+        // Create activity for room update
+        \App\Models\Activity::create([
+            'user_id' => auth()->id(),
+            'action' => 'update_room',
+            'meta' => [
+                'room_id' => $room->id,
+                'room_number' => $room->number,
+                'tenant_name' => optional($room->tenant)->name,
+            ],
+        ]);
+        
         return back()->with('success', 'Kamar diperbarui');
     }
 

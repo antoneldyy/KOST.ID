@@ -237,10 +237,6 @@
               <input type="file" class="form-control-file" name="ktp" accept="image/*,.pdf" required>
               <small class="form-text text-muted">Format: JPG, JPEG, PNG, PDF (Maksimal 2MB)</small>
             </div>
-            <div class="form-group">
-              <label>Password</label>
-              <input type="password" class="form-control" name="password" required>
-            </div>
           </div>
           <div class="modal-footer bg-whitesmoke br">
             <button type="submit" class="btn btn-primary">Simpan</button>
