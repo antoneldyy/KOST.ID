@@ -31,10 +31,18 @@
                                             <td>Rp {{ number_format($payment->amount, 0, ',', '.') }}</td>
                                             <td>{{ $payment->paid_at ? $payment->paid_at->format('d M Y') : '-' }}</td>
                                             <td>
-                                                @if($payment->approved_at)
-                                                    <div class="badge badge-success">Disetujui</div>
+                                                @if($payment->status === 'rejected' && !$payment->approved_at)
+                                                    <div class="badge badge-danger">
+                                                        Ditolak
+                                                    </div>
+                                                @elseif($payment->approved_at)
+                                                    <div class="badge badge-success">
+                                                        Disetujui
+                                                    </div>
                                                 @else
-                                                    <div class="badge badge-warning">Menunggu</div>
+                                                    <div class="badge badge-warning">
+                                                        Menunggu
+                                                    </div>
                                                 @endif
                                             </td>
                                         </tr>
@@ -84,7 +92,7 @@
                     {
                         title: 'Bayar Rp {{ number_format($p->amount, 0, ',', '.') }}',
                         start: '{{ $p->paid_at ? $p->paid_at->toDateString() : now()->toDateString() }}',
-                        color: '{{ $p->approved_at ? "#28a745" : "#ffc107" }}'
+                        color: '{{ $p->status === "rejected" ? "#dc3545" : ($p->approved_at ? "#28a745" : "#ffc107") }}'
                     },
                 @endforeach
             ],
