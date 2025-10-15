@@ -15,6 +15,7 @@
     <div class="section-body">
       <div class="card">
         <div class="card-body">
+          {{-- ✅ Alert sukses & error --}}
           @if(session('success'))
           <div class="alert alert-success alert-dismissible fade show" role="alert">
             {{ session('success') }}
@@ -32,6 +33,7 @@
           </div>
           @endif
 
+          {{-- ✅ Tabel utama --}}
           <div class="table-responsive">
             <table class="table table-striped">
               <thead>
@@ -48,13 +50,17 @@
                   <td>{{ $room->number }}</td>
                   <td>{{ optional($room->tenant)->name ?? '-' }}</td>
                   <td>
-                    <button class="btn btn-sm btn-info" onclick="loadPayments({{ $room->id }})" data-toggle="collapse" data-target="#payments{{ $room->id }}">
+                    <button class="btn btn-sm btn-info"
+                            onclick="loadPayments({{ $room->id }})"
+                            data-toggle="collapse"
+                            data-target="#payments{{ $room->id }}">
                       <i class="fas fa-receipt"></i> Lihat Bukti
                     </button>
                   </td>
                   <td>
                     <div class="btn-group">
-                      <button class="btn btn-sm btn-warning" data-toggle="modal" data-target="#modalEdit{{ $room->id }}">
+                      <button class="btn btn-sm btn-warning" data-toggle="modal"
+                              data-target="#modalEdit{{ $room->id }}">
                         <i class="fas fa-edit"></i> Edit
                       </button>
                       <button class="btn btn-sm btn-danger" onclick="deleteRoom({{ $room->id }})">
@@ -75,52 +81,6 @@
                     </div>
                   </td>
                 </tr>
-
-                {{-- Modal Edit Room --}}
-                <div class="modal fade" tabindex="-1" role="dialog" id="modalEdit{{ $room->id }}">
-                  <div class="modal-dialog" role="document">
-                    <div class="modal-content">
-                      <form method="POST" action="{{ route('rooms.update',$room) }}">
-                        @csrf
-                        @method('PUT')
-                        <div class="modal-header">
-                          <h5 class="modal-title">Edit Kamar</h5>
-                          <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
-                        </div>
-                        <div class="modal-body">
-                          <div class="form-group">
-                            <label>Nomor Kamar</label>
-                            <input type="text" class="form-control" name="number" value="{{ $room->number }}" required>
-                          </div>
-                          <div class="form-group">
-                            <label>Penghuni</label>
-                            <select class="form-control" name="user_id">
-                              <option value="">- Kosong -</option>
-                              @foreach(\App\Models\User::where('role','user')->orderBy('name')->get() as $tenant)
-                                <option value="{{ $tenant->id }}" {{ $room->user_id == $tenant->id ? 'selected' : '' }} {{ $tenant->status === 'deactive' ? 'disabled' : '' }}>
-                                  {{ $tenant->name }} {{ $tenant->status === 'deactive' ? '(nonaktif)' : '' }}
-                                </option>
-                              @endforeach
-                            </select>
-                          </div>
-                          @if($room->tenant)
-                          <div class="form-group">
-                            <label>Status Penghuni</label>
-                            <select class="form-control" name="tenant_status">
-                              <option value="active" {{ $room->tenant->status == 'active' ? 'selected' : '' }}>Aktif</option>
-                              <option value="deactive" {{ $room->tenant->status == 'deactive' ? 'selected' : '' }}>Nonaktif</option>
-                            </select>
-                          </div>
-                          @endif
-                        </div>
-                        <div class="modal-footer bg-whitesmoke br">
-                          <button type="submit" class="btn btn-primary">Simpan</button>
-                          <button type="button" class="btn btn-secondary" data-dismiss="modal">Batal</button>
-                        </div>
-                      </form>
-                    </div>
-                  </div>
-                </div>
                 @endforeach
               </tbody>
             </table>
@@ -131,7 +91,7 @@
   </section>
 </div>
 
-{{-- Modal Tambah Kamar --}}
+{{-- ✅ Modal Tambah Kamar --}}
 <div class="modal fade" tabindex="-1" role="dialog" id="modalCreate">
   <div class="modal-dialog" role="document">
     <div class="modal-content">
@@ -139,7 +99,9 @@
         @csrf
         <div class="modal-header">
           <h5 class="modal-title">Tambah Kamar</h5>
-          <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+          <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+            <span aria-hidden="true">&times;</span>
+          </button>
         </div>
         <div class="modal-body">
           <div class="form-group">
@@ -155,8 +117,59 @@
     </div>
   </div>
 </div>
-@endsection
 
+{{-- ✅ Modal Edit Semua Kamar (Ditaruh di luar tabel agar tidak bentrok Bootstrap) --}}
+@foreach($rooms as $room)
+<div class="modal fade" tabindex="-1" role="dialog" id="modalEdit{{ $room->id }}">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+      <form method="POST" action="{{ route('rooms.update',$room) }}">
+        @csrf
+        @method('PUT')
+        <div class="modal-header">
+          <h5 class="modal-title">Edit Kamar</h5>
+          <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+            <span aria-hidden="true">&times;</span>
+          </button>
+        </div>
+        <div class="modal-body">
+          <div class="form-group">
+            <label>Nomor Kamar</label>
+            <input type="text" class="form-control" name="number" value="{{ $room->number }}" required>
+          </div>
+          <div class="form-group">
+            <label>Penghuni</label>
+            <select class="form-control" name="user_id">
+              <option value="">- Kosong -</option>
+              @foreach(\App\Models\User::where('role','user')->orderBy('name')->get() as $tenant)
+                <option value="{{ $tenant->id }}"
+                        {{ $room->user_id == $tenant->id ? 'selected' : '' }}
+                        {{ $tenant->status === 'deactive' ? 'disabled' : '' }}>
+                  {{ $tenant->name }} {{ $tenant->status === 'deactive' ? '(nonaktif)' : '' }}
+                </option>
+              @endforeach
+            </select>
+          </div>
+          @if($room->tenant)
+          <div class="form-group">
+            <label>Status Penghuni</label>
+            <select class="form-control" name="tenant_status">
+              <option value="active" {{ $room->tenant->status == 'active' ? 'selected' : '' }}>Aktif</option>
+              <option value="deactive" {{ $room->tenant->status == 'deactive' ? 'selected' : '' }}>Nonaktif</option>
+            </select>
+          </div>
+          @endif
+        </div>
+        <div class="modal-footer bg-whitesmoke br">
+          <button type="submit" class="btn btn-primary">Simpan</button>
+          <button type="button" class="btn btn-secondary" data-dismiss="modal">Batal</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+@endforeach
+@endsection
 
 @section('js')
 <script>
@@ -189,13 +202,13 @@ function loadPayments(roomId) {
           : '<span class="text-muted">-</span>';
 
         const actionButtons = (payment.paid_at && !payment.approved_at && payment.status !== 'rejected')
-  ? `<button class="btn btn-sm btn-success" onclick="approvePayment(${payment.id}, this)">
-       <i class="fas fa-check"></i> Approve
-     </button>
-     <button class="btn btn-sm btn-danger" onclick="rejectPayment(${payment.id}, this)">
-       <i class="fas fa-times"></i> Reject
-     </button>`
-  : '-';
+          ? `<button class="btn btn-sm btn-success" onclick="approvePayment(${payment.id}, this)">
+               <i class="fas fa-check"></i> Approve
+             </button>
+             <button class="btn btn-sm btn-danger" onclick="rejectPayment(${payment.id}, this)">
+               <i class="fas fa-times"></i> Reject
+             </button>`
+          : '-';
 
         html += `<tr id="payment-row-${payment.id}">
           <td>${payment.month}/${payment.year}</td>
@@ -235,8 +248,7 @@ function deleteRoom(roomId) {
   }
 }
 
-// ✅ UPDATE UI TANPA RELOAD SETELAH APPROVE/REJECT
-function approvePayment(paymentId, btn) {
+function approvePayment(paymentId) {
   if (confirm('Approve pembayaran ini?')) {
     fetch(`/admin/payments/${paymentId}/approve`, {
       method: 'POST',
@@ -257,7 +269,7 @@ function approvePayment(paymentId, btn) {
   }
 }
 
-function rejectPayment(paymentId, btn) {
+function rejectPayment(paymentId) {
   if (confirm('Reject pembayaran ini?')) {
     fetch(`/admin/payments/${paymentId}/reject`, {
       method: 'POST',
