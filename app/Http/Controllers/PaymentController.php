@@ -33,20 +33,17 @@ class PaymentController extends Controller
             ->where('user_id', Auth::id())
             ->firstOrFail();
 
-        // Simpan file bukti pembayaran
         $path = $request->file('proof')->store('proofs', 'public');
 
-        // Pastikan payment terkait kamar aktif user saat ini
         $currentRoomId = optional(Auth::user()->room)->id;
 
         $payment->update([
             'proof_path' => $path,
             'paid_at' => now(),
             'room_id' => $currentRoomId,
-            'status' => 'pending', // status default saat upload bukti
+            'status' => 'pending',
         ]);
 
-        // Create activity for user uploading payment proof
         \App\Models\Activity::create([
             'user_id' => Auth::id(),
             'action' => 'upload_payment_proof',
@@ -57,6 +54,23 @@ class PaymentController extends Controller
                 'room_number' => optional(Auth::user()->room)->number,
             ],
         ]);
+
+        // 🔔 Tambahan notifikasi admin & user
+        // Notifikasi untuk user sendiri
+            // user notification removed per request (admin-only notification retained)
+
+        // Notifikasi untuk semua admin
+        $admins = User::where('role', 'admin')->get();
+        foreach ($admins as $admin) {
+            Notification::create([
+                'type' => 'payment_upload_user',
+                'title' => Auth::user()->name . ' telah mengunggah bukti bayar bulan ini.',
+                'message' => 'Periksa bukti pembayaran dari penghuni tersebut.',
+                'data' => ['user_id' => $admin->id, 'payment_id' => $payment->id],
+                'is_read' => false,
+            ]);
+        }
+        // 🔔 Akhir tambahan
 
         return redirect()->route('payment.index')
             ->with('success', 'Bukti pembayaran berhasil diunggah!');
@@ -80,7 +94,6 @@ class PaymentController extends Controller
             'proof_path' => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:2048',
         ]);
 
-        // Cegah duplikat pembayaran untuk bulan & tahun yang sama
         $exists = Payment::where('user_id', $request->user_id)
             ->where('month', $request->month)
             ->where('year', $request->year)
@@ -91,7 +104,6 @@ class PaymentController extends Controller
                 ->with('error', 'Anda sudah melakukan pembayaran untuk bulan dan tahun ini.');
         }
 
-        // Upload file jika ada
         if ($request->hasFile('proof_path')) {
             $file = $request->file('proof_path');
             $filename = time() . '_' . $file->getClientOriginalName();
@@ -103,17 +115,23 @@ class PaymentController extends Controller
             $validated['status'] = 'unpaid';
         }
 
-        // Simpan data pembayaran baru
         $payment = Payment::create($validated);
 
-        // Tambahkan notifikasi user
-        Notification::create([
-            'user_id' => auth()->id(),
-            'type' => 'payment_upload',
-            'title' => 'Pembayaran Dikirim',
-            'message' => 'Pembayaran Anda telah berhasil dikirim dan menunggu konfirmasi dari admin.',
-            'is_read' => false,
-        ]);
+        // 🔔 Notifikasi user
+            // user notification removed per request (admin-only notification retained)
+
+        // 🔔 Tambahan notifikasi admin
+        $user = User::find($request->user_id);
+        $admins = User::where('role', 'admin')->get();
+        foreach ($admins as $admin) {
+            Notification::create([
+                'type' => 'payment_upload_user',
+                'title' => $user->name . ' telah mengunggah bukti bayar bulan ini.',
+                'message' => 'Periksa bukti pembayaran dari penghuni tersebut.',
+                'data' => ['user_id' => $admin->id, 'payment_id' => $payment->id ?? null],
+                'is_read' => false,
+            ]);
+        }
 
         return redirect()->route('payment.index')
             ->with('success', 'Pembayaran berhasil disimpan!');
@@ -134,7 +152,6 @@ class PaymentController extends Controller
 
     public function destroy(Payment $payment)
     {
-        // Hapus bukti jika ada
         if ($payment->proof_path && Storage::disk('public')->exists($payment->proof_path)) {
             Storage::disk('public')->delete($payment->proof_path);
         }
@@ -154,7 +171,6 @@ class PaymentController extends Controller
                 'status' => 'approved',
             ]);
 
-            // Notifikasi user
             $roomNum = optional($payment->room)->number ?? '-';
             Notification::create([
                 'type' => 'payment_approved',
@@ -187,7 +203,6 @@ class PaymentController extends Controller
     public function reject(Payment $payment)
     {
         try {
-            // Jika ada bukti, hapus file-nya
             if ($payment->proof_path && Storage::disk('public')->exists($payment->proof_path)) {
                 Storage::disk('public')->delete($payment->proof_path);
             }
@@ -199,7 +214,6 @@ class PaymentController extends Controller
                 'approved_by' => null,
             ]);
 
-            // Notifikasi user
             $roomNum = optional($payment->room)->number ?? '-';
             Notification::create([
                 'type' => 'payment_rejected',

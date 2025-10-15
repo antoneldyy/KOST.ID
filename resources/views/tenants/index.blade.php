@@ -173,13 +173,7 @@
                               <label>Alamat</label>
                               <textarea class="form-control" name="address" rows="3">{{ $tenant->address }}</textarea>
                             </div>
-                            <div class="form-group">
-                              <label>KTP (Upload ulang jika ingin mengubah)</label>
-                              <input type="file" class="form-control-file" name="ktp" accept="image/*,.pdf">
-                              @if($tenant->ktp_path)
-                                <small class="form-text text-muted">KTP saat ini: <a href="{{ asset('storage/' . $tenant->ktp_path) }}" target="_blank">Lihat</a></small>
-                              @endif
-                            </div>
+                            {{-- KTP upload removed for edit modal: admin tidak perlu upload ulang KTP saat edit --}}
                             <div class="form-group">
                               <label>Password (kosongkan jika tidak diubah)</label>
                               <input type="password" class="form-control" name="password">
@@ -233,9 +227,16 @@
               <textarea class="form-control" name="address" rows="3"></textarea>
             </div>
             <div class="form-group">
-              <label>Upload KTP</label>
-              <input type="file" class="form-control-file" name="ktp" accept="image/*,.pdf" required>
-              <small class="form-text text-muted">Format: JPG, JPEG, PNG, PDF (Maksimal 2MB)</small>
+              <label>Pilih Kamar (opsional)</label>
+              <select name="room_id" class="form-control">
+                <option value="">- Tidak ada -</option>
+                @foreach(\App\Models\Room::with('tenant')->orderBy('number')->get() as $room)
+                  <option value="{{ $room->id }}" {{ $room->user_id ? 'disabled' : '' }}>
+                    {{ $room->number }} @if($room->user_id) - terisi @endif
+                  </option>
+                @endforeach
+              </select>
+              <small class="form-text text-muted">Pilih kamar kosong untuk langsung menempatkan penghuni (opsional).</small>
             </div>
           </div>
           <div class="modal-footer bg-whitesmoke br">

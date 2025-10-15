@@ -35,44 +35,71 @@ class RoomController extends Controller
         return back()->with('success', 'Kamar ditambahkan');
     }
 
-    public function update(Request $request, Room $room)
-    {
-        $validated = $request->validate([
-            'number' => 'required|string|max:50|unique:rooms,number,' . $room->id,
-            'user_id' => 'nullable|exists:users,id',
-            'tenant_status' => 'nullable|in:active,deactive',
-        ]);
-        // If assigning a user to this room, make sure that user is not assigned elsewhere
-        if (!empty($validated['user_id'])) {
-            // Detach user from any other room
-            Room::where('user_id', $validated['user_id'])
-                ->where('id', '!=', $room->id)
-                ->update(['user_id' => null]);
-        }
+    public function update(Request $request, $id)
+{
+    $request->validate([
+        'number' => 'required|string|max:50',
+        'user_id' => 'nullable|exists:users,id',
+    ]);
 
-        $room->update(collect($validated)->only(['number','user_id'])->toArray());
+    $room = Room::findOrFail($id);
 
-        // Optionally update tenant status if provided
-        if (!empty($validated['tenant_status']) && !empty($validated['user_id'])) {
-            $tenant = User::find($validated['user_id']);
-            if ($tenant) {
-                $tenant->update(['status' => $validated['tenant_status']]);
-            }
-        }
-        
-        // Create activity for room update
-        \App\Models\Activity::create([
-            'user_id' => auth()->id(),
-            'action' => 'update_room',
-            'meta' => [
-                'room_id' => $room->id,
-                'room_number' => $room->number,
-                'tenant_name' => optional($room->tenant)->name,
-            ],
-        ]);
-        
-        return back()->with('success', 'Kamar diperbarui');
+    // Keep old data for activity
+    $oldNumber = $room->number;
+    $oldUserId = $room->user_id;
+
+    // Update room number
+    $room->number = $request->number;
+
+    // Handle tenant assignment: if user_id provided, assign to this room (and free previous room)
+    $newUserId = $request->input('user_id') ?: null;
+
+    if ($newUserId) {
+        // Free any room currently occupied by this user (except this room)
+        Room::where('user_id', $newUserId)->where('id', '!=', $room->id)->update(['user_id' => null]);
+        $room->user_id = $newUserId;
+    } else {
+        // If admin sets empty, detach user from this room
+        $room->user_id = null;
     }
+
+    $room->save();
+
+    // Update tenant status if provided
+    if ($request->has('tenant_status') && $newUserId) {
+        $tenant = \App\Models\User::find($newUserId);
+        if ($tenant) {
+            $tenant->status = $request->tenant_status;
+            $tenant->save();
+        }
+    }
+
+    // If room occupant changed, update previous occupant record
+    if ($oldUserId && $oldUserId != $newUserId) {
+        $prevTenant = \App\Models\User::find($oldUserId);
+        if ($prevTenant) {
+            // detach prev tenant from this room
+            // (Room model already updated, just ensure consistency)
+            // no extra field on user needed
+        }
+    }
+
+    // Create activity for room update
+    \App\Models\Activity::create([
+        'user_id' => auth()->id(),
+        'action' => 'update_room',
+        'meta' => [
+            'room_id' => $room->id,
+            'room_number_old' => $oldNumber,
+            'room_number_new' => $room->number,
+            'old_user_id' => $oldUserId,
+            'new_user_id' => $newUserId,
+        ],
+    ]);
+
+    return redirect()->back()->with('success', 'Data kamar berhasil diperbarui.');
+}
+
 
     public function destroy(Room $room)
     {

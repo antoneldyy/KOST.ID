@@ -24,11 +24,17 @@
                         $notifications = Notification::orderBy('created_at', 'desc')->limit(5)->get();
                     @endphp
                     @forelse($notifications as $notification)
-                        <a href="{{ $notification->type == 'payment_upload' ? '/admin/rooms' : '/admin/tenants' }}"
+                        @php
+                            $isPaymentNotification = in_array($notification->type, ['payment_upload', 'payment_upload_user']);
+                            $targetUrl = $isPaymentNotification ? '/admin/rooms' : '/admin/tenants';
+                            $iconBg = $isPaymentNotification ? 'primary' : 'info';
+                            $iconName = $isPaymentNotification ? 'receipt' : 'user';
+                        @endphp
+                        <a href="{{ $targetUrl }}"
                            class="dropdown-item {{ $notification->is_read ? '' : 'unread' }}"
                            onclick="markAsRead({{ $notification->id }})">
-                            <div class="dropdown-item-icon bg-{{ $notification->type == 'payment_upload' ? 'primary' : 'info' }} text-white">
-                                <i class="fas fa-{{ $notification->type == 'payment_upload' ? 'receipt' : 'user' }}"></i>
+                            <div class="dropdown-item-icon bg-{{ $iconBg }} text-white">
+                                <i class="fas fa-{{ $iconName }}"></i>
                             </div>
                             <div class="dropdown-item-desc">
                                 {{ $notification->title }}
