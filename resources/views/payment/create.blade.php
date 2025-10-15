@@ -52,6 +52,9 @@
             @endphp
 
             <input type="hidden" name="user_id" value="{{ auth()->id() }}">
+            @if(isset($payment))
+              <input type="hidden" name="payment_id" value="{{ $payment->id }}">
+            @endif
 
             @if ($room)
                 <div class="form-group">
@@ -69,24 +72,24 @@
               <label for="month">Bulan</label>
               <select name="month" id="month" class="form-control">
                 @for ($m = 1; $m <= 12; $m++)
-                  <option value="{{ $m }}">{{ \Carbon\Carbon::create()->month($m)->translatedFormat('F') }}</option>
+                  <option value="{{ $m }}" {{ isset($payment) && $payment->month == $m ? 'selected' : '' }}>{{ \Carbon\Carbon::create()->month($m)->translatedFormat('F') }}</option>
                 @endfor
               </select>
             </div>
 
             <div class="form-group">
               <label for="year">Tahun</label>
-              <input type="number" name="year" id="year" class="form-control" value="{{ date('Y') }}" required>
+              <input type="number" name="year" id="year" class="form-control" value="{{ isset($payment) ? $payment->year : date('Y') }}" required>
             </div>
 
             <div class="form-group">
               <label for="amount">Jumlah Pembayaran (Rp)</label>
-              <input type="number" name="amount" id="amount" class="form-control" value="800000" readonly>
+              <input type="number" name="amount" id="amount" class="form-control" value="{{ isset($payment) ? $payment->amount : 800000 }}" readonly>
             </div>
 
             <div class="form-group">
               <label for="paid_at">Tanggal Pembayaran</label>
-              <input type="date" name="paid_at" id="paid_at" class="form-control" value="{{ date('Y-m-d') }}">
+              <input type="date" name="paid_at" id="paid_at" class="form-control" value="{{ isset($payment) && $payment->paid_at ? $payment->paid_at->format('Y-m-d') : date('Y-m-d') }}">
             </div>
 
             <div class="form-group">

@@ -93,6 +93,15 @@
 
   <!-- Notification Scripts -->
   <script>
+  function markAllUserNotificationsRead(e) {
+    if (e) e.preventDefault();
+    // remove badge
+    const badge = document.querySelector('.notification-badge');
+    if (badge) badge.remove();
+    // remove unread styling in dropdown
+    document.querySelectorAll('#notif-list .dropdown-item').forEach(item => item.classList.remove('unread'));
+    // Optionally, send a request to server to persist (not implemented for payments)
+  }
   function markAsRead(notificationId) {
     fetch('/admin/notifications/' + notificationId + '/read', {
       method: 'POST',

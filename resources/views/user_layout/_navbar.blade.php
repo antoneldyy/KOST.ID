@@ -84,9 +84,9 @@
 
           @if($notifications->count() > 0)
             <div class="dropdown-divider"></div>
-            <a href="{{ route('payment.index') }}" class="dropdown-item text-center text-primary">
-              Lihat semua pembayaran
-            </a>
+              <a href="#" class="dropdown-item text-center text-primary" onclick="markAllUserNotificationsRead(event)">
+                Tandai semua sudah dibaca
+              </a>
           @endif
         </div>
       </div>
@@ -102,9 +102,6 @@
         <div class="dropdown-title">Logged in</div>
         <a href="{{ route('profile.edit') }}" class="dropdown-item has-icon">
           <i class="far fa-user"></i> Profile
-        </a>
-        <a href="{{ route('activities.index') }}" class="dropdown-item has-icon">
-          <i class="fas fa-bolt"></i> Activities
         </a>
         <div class="dropdown-divider"></div>
       </div>

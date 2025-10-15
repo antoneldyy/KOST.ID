@@ -33,9 +33,19 @@ class PaymentController extends Controller
             ->where('user_id', Auth::id())
             ->firstOrFail();
 
+        // Do not allow uploading if already approved
+        if ($payment->status === 'approved' || $payment->approved_at) {
+            return redirect()->route('payment.index')->with('error', 'Pembayaran sudah disetujui, tidak dapat mengunggah ulang.');
+        }
+
         $path = $request->file('proof')->store('proofs', 'public');
 
         $currentRoomId = optional(Auth::user()->room)->id;
+
+        // Delete old proof if exists
+        if ($payment->proof_path && Storage::disk('public')->exists($payment->proof_path)) {
+            Storage::disk('public')->delete($payment->proof_path);
+        }
 
         $payment->update([
             'proof_path' => $path,
@@ -72,14 +82,18 @@ class PaymentController extends Controller
         }
         // 🔔 Akhir tambahan
 
-        return redirect()->route('payment.index')
+        return redirect()->route('userpage')
             ->with('success', 'Bukti pembayaran berhasil diunggah!');
     }
 
-    public function create()
+    public function create(Request $request)
     {
         $rooms = Room::all();
-        return view('payment.create', compact('rooms'));
+        $payment = null;
+        if ($request->has('payment_id')) {
+            $payment = Payment::where('id', $request->payment_id)->where('user_id', auth()->id())->first();
+        }
+        return view('payment.create', compact('rooms', 'payment'));
     }
 
     public function store(Request $request)
@@ -94,12 +108,95 @@ class PaymentController extends Controller
             'proof_path' => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:2048',
         ]);
 
-        $exists = Payment::where('user_id', $request->user_id)
+        // If a specific payment_id is provided, treat this as re-upload for that payment
+        if ($request->filled('payment_id')) {
+            $payment = Payment::where('id', $request->payment_id)->where('user_id', $request->user_id)->firstOrFail();
+            // Only allow re-upload if previously rejected
+            if ($payment->status !== 'rejected') {
+                return redirect()->route('payment.create')->with('error', 'Pembayaran tidak dalam status ditolak, tidak dapat mengunggah ulang.');
+            }
+
+            if ($request->hasFile('proof_path')) {
+                if ($payment->proof_path && Storage::disk('public')->exists($payment->proof_path)) {
+                    Storage::disk('public')->delete($payment->proof_path);
+                }
+                $file = $request->file('proof_path');
+                $filename = time() . '_' . $file->getClientOriginalName();
+                $path = $file->storeAs('uploads/payments', $filename, 'public');
+                $payment->update([
+                    'proof_path' => $path,
+                    'paid_at' => $request->paid_at ?? now(),
+                    'amount' => $request->amount ?? $payment->amount,
+                    'status' => 'pending',
+                    'room_id' => $request->room_id ?? $payment->room_id,
+                ]);
+
+                // notify admins
+                $user = User::find($request->user_id);
+                $admins = User::where('role', 'admin')->get();
+                foreach ($admins as $admin) {
+                    Notification::create([
+                        'type' => 'payment_upload_user',
+                        'title' => $user->name . ' telah mengunggah bukti bayar bulan ini.',
+                        'message' => 'Periksa bukti pembayaran dari penghuni tersebut.',
+                        'data' => ['user_id' => $admin->id, 'payment_id' => $payment->id],
+                        'is_read' => false,
+                    ]);
+                }
+
+                return redirect()->route('userpage')->with('success', 'Bukti pembayaran berhasil diunggah ulang!');
+            }
+
+            return redirect()->route('payment.create')->with('error', 'Silakan upload bukti pembayaran untuk mengirim ulang.');
+        }
+
+        $existing = Payment::where('user_id', $request->user_id)
             ->where('month', $request->month)
             ->where('year', $request->year)
-            ->exists();
+            ->first();
 
-        if ($exists) {
+        if ($existing) {
+            // If previous payment was rejected, allow updating (re-upload)
+            if ($existing->status === 'rejected') {
+                // If file provided, store it and update the payment
+                if ($request->hasFile('proof_path')) {
+                    // delete old file if any
+                    if ($existing->proof_path && Storage::disk('public')->exists($existing->proof_path)) {
+                        Storage::disk('public')->delete($existing->proof_path);
+                    }
+                    $file = $request->file('proof_path');
+                    $filename = time() . '_' . $file->getClientOriginalName();
+                    $path = $file->storeAs('uploads/payments', $filename, 'public');
+                    $existing->update([
+                        'proof_path' => $path,
+                        'paid_at' => now(),
+                        'amount' => $request->amount ?? $existing->amount,
+                        'status' => 'pending',
+                        'room_id' => $request->room_id ?? $existing->room_id,
+                    ]);
+
+                    // notify admins about new upload (same as create flow)
+                    $user = User::find($request->user_id);
+                    $admins = User::where('role', 'admin')->get();
+                    foreach ($admins as $admin) {
+                        Notification::create([
+                            'type' => 'payment_upload_user',
+                            'title' => $user->name . ' telah mengunggah bukti bayar bulan ini.',
+                            'message' => 'Periksa bukti pembayaran dari penghuni tersebut.',
+                            'data' => ['user_id' => $admin->id, 'payment_id' => $existing->id],
+                            'is_read' => false,
+                        ]);
+                    }
+
+                    return redirect()->route('userpage')
+                        ->with('success', 'Bukti pembayaran berhasil diunggah ulang!');
+                }
+
+                return redirect()->route('payment.create')
+                    ->with('error', 'Silakan upload bukti pembayaran untuk mengirim ulang.');
+            }
+
+            // If existing payment is not rejected (e.g., pending/approved), block new creation
             return redirect()->route('payment.create')
                 ->with('error', 'Anda sudah melakukan pembayaran untuk bulan dan tahun ini.');
         }

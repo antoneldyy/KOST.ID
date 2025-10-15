@@ -66,10 +66,15 @@
 
                                         <!-- Tombol aksi -->
                                         <td>
-                                            @if(!$payment->proof_path)
-                                                <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#uploadModal{{ $payment->id }}">
+                                            @if($payment->status === 'rejected')
+                                                {{-- link to create page for re-upload --}}
+                                                <a href="{{ route('payment.create', ['payment_id' => $payment->id]) }}" class="btn btn-warning btn-sm">
+                                                    Upload Ulang
+                                                </a>
+                                            @elseif(!$payment->proof_path)
+                                                <a href="{{ route('payment.create') }}" class="btn btn-primary btn-sm">
                                                     Upload Bukti
-                                                </button>
+                                                </a>
                                             @else
                                                 <button class="btn btn-outline-secondary btn-sm" disabled>
                                                     Sudah Upload
@@ -120,3 +125,5 @@
     </section>
 </div>
 @endsection
+
+{{-- no auto-open JS — users should go to create page to upload/re-upload --}}
