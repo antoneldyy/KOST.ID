@@ -24,12 +24,14 @@
               ->limit(5)
               ->get();
 
-          // Hitung pembayaran yang belum disetujui (menunggu acc)
-          $pendingCount = $notifications->whereNull('approved_at')->count();
+          // Hitung notifikasi aktif: pembayaran menunggu atau ditolak
+          $activeCount = $notifications->filter(function($p) {
+              return (is_null($p->approved_at) && $p->status !== 'rejected') || $p->status === 'rejected';
+          })->count();
         @endphp
 
-        @if($pendingCount > 0)
-          <span class="badge badge-danger notification-badge">{{ $pendingCount }}</span>
+        @if($activeCount > 0)
+          <span class="badge badge-danger notification-badge">{{ $activeCount }}</span>
         @endif
       </a>
 
@@ -47,18 +49,29 @@
             @php
               $monthName = $monthNames[$payment->month] ?? $payment->month;
               $isApproved = !is_null($payment->approved_at);
+              $isRejected = $payment->status === 'rejected' && is_null($payment->approved_at);
             @endphp
 
-            <a href="{{ route('payment.index') }}"
-               class="dropdown-item">
-              <div class="dropdown-item-icon bg-{{ $isApproved ? 'success' : 'warning' }} text-white">
+            <a href="{{ route('payment.index') }}" class="dropdown-item">
+              <div class="dropdown-item-icon
+                @if($isApproved)
+                  bg-success
+                @elseif($isRejected)
+                  bg-danger
+                @else
+                  bg-warning
+                @endif
+                text-white">
                 <i class="fas fa-receipt"></i>
               </div>
+
               <div class="dropdown-item-desc">
-                @if(!$isApproved)
-                  Pembayaran bulan {{ $monthName }} {{ $payment->year }} menunggu konfirmasi admin.
+                @if($isRejected)
+                  ❌ Pembayaran bulan {{ $monthName }} {{ $payment->year }} telah <strong>ditolak</strong> oleh admin.
+                @elseif($isApproved)
+                  ✅ Pembayaran bulan {{ $monthName }} {{ $payment->year }} telah <strong>disetujui</strong>.
                 @else
-                  Pembayaran bulan {{ $monthName }} {{ $payment->year }} telah disetujui.
+                  ⏳ Pembayaran bulan {{ $monthName }} {{ $payment->year }} menunggu konfirmasi admin.
                 @endif
                 <div class="time text-muted small">{{ $payment->created_at->diffForHumans() }}</div>
               </div>
@@ -94,7 +107,6 @@
           <i class="fas fa-bolt"></i> Activities
         </a>
         <div class="dropdown-divider"></div>
-
       </div>
     </li>
   </ul>
