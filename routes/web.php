@@ -26,7 +26,7 @@ use App\Http\Controllers\PilihKamarController;
 // Route::get('/', function () {
 //     return view('welcome');
 // });
-
+Route::redirect('/', '/login');
 Route::get('/login', fn () => view('auth.login'))->name('login');
 Route::get('/register', [AuthController::class, 'showRegister'])->name('register');
 Route::post('/register', [AuthController::class, 'register']);
