@@ -26,7 +26,11 @@
                     @forelse($notifications as $notification)
                         @php
                             $isPaymentNotification = in_array($notification->type, ['payment_upload', 'payment_upload_user']);
-                            $targetUrl = $isPaymentNotification ? '/admin/rooms' : '/admin/tenants';
+                            $data = $notification->data ?? [];
+                            $roomParam = isset($data['room_id']) ? 'open_room_id=' . $data['room_id'] : '';
+                            $paymentParam = isset($data['payment_id']) ? 'open_payment_id=' . $data['payment_id'] : '';
+                            $query = trim(implode('&', array_filter([$roomParam, $paymentParam])), '&');
+                            $targetUrl = $isPaymentNotification ? ('/admin/rooms' . ($query ? ('?' . $query) : '')) : '/admin/tenants';
                             $iconBg = $isPaymentNotification ? 'primary' : 'info';
                             $iconName = $isPaymentNotification ? 'receipt' : 'user';
                         @endphp

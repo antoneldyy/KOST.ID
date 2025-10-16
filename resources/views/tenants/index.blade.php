@@ -98,10 +98,10 @@
                     </td>
                     <td>
                       <div class="btn-group">
-                        <button class="btn btn-sm btn-warning btn-edit" data-id="{{ $tenant->id }}">
-                          <i class="fas fa-edit"></i> Edit
-                        </button>
                         @if($tenant->status == 'active')
+                          <button class="btn btn-sm btn-warning btn-edit" data-id="{{ $tenant->id }}">
+                            <i class="fas fa-edit"></i> Edit
+                          </button>
                           <form action="{{ route('tenants.deactivate', $tenant) }}" method="POST" class="d-inline" onsubmit="return confirm('Nonaktifkan penghuni ini?')">
                             @csrf
                             @method('PATCH')
@@ -115,6 +115,13 @@
                             @method('PATCH')
                             <button class="btn btn-sm btn-success">
                               <i class="fas fa-user-check"></i> Aktifkan
+                            </button>
+                          </form>
+                          <form action="{{ route('tenants.destroy', $tenant) }}" method="POST" class="d-inline" onsubmit="return confirm('Hapus penghuni ini?')">
+                            @csrf
+                            @method('DELETE')
+                            <button class="btn btn-sm btn-danger">
+                              <i class="fas fa-trash"></i> Hapus
                             </button>
                           </form>
                         @endif
@@ -303,7 +310,7 @@ document.addEventListener('click', function(e) {
 function filterTenants(status) {
   const url = new URL(window.location);
   if (status === 'all') {
-    url.searchParams.delete('status');
+    url.searchParams.set('status', 'all');
   } else {
     url.searchParams.set('status', status);
   }

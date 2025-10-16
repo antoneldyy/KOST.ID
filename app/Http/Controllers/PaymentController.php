@@ -71,12 +71,14 @@ class PaymentController extends Controller
 
         // Notifikasi untuk semua admin
         $admins = User::where('role', 'admin')->get();
+        $monthNames = [1=>'Januari',2=>'Februari',3=>'Maret',4=>'April',5=>'Mei',6=>'Juni',7=>'Juli',8=>'Agustus',9=>'September',10=>'Oktober',11=>'November',12=>'Desember'];
+        $monthLabel = $monthNames[$payment->month] ?? ($payment->month ?? '');
         foreach ($admins as $admin) {
             Notification::create([
                 'type' => 'payment_upload_user',
-                'title' => Auth::user()->name . ' telah mengunggah bukti bayar bulan ini.',
+                'title' => Auth::user()->name . ' telah mengunggah bukti bayar bulan ' . strtolower($monthLabel) . '.',
                 'message' => 'Periksa bukti pembayaran dari penghuni tersebut.',
-                'data' => ['user_id' => $admin->id, 'payment_id' => $payment->id],
+                'data' => ['user_id' => $admin->id, 'payment_id' => $payment->id, 'room_id' => $payment->room_id ?? $currentRoomId],
                 'is_read' => false,
             ]);
         }
@@ -134,15 +136,30 @@ class PaymentController extends Controller
                 // notify admins
                 $user = User::find($request->user_id);
                 $admins = User::where('role', 'admin')->get();
-                foreach ($admins as $admin) {
-                    Notification::create([
-                        'type' => 'payment_upload_user',
-                        'title' => $user->name . ' telah mengunggah bukti bayar bulan ini.',
-                        'message' => 'Periksa bukti pembayaran dari penghuni tersebut.',
-                        'data' => ['user_id' => $admin->id, 'payment_id' => $payment->id],
-                        'is_read' => false,
-                    ]);
-                }
+                    $monthNames = [1=>'Januari',2=>'Februari',3=>'Maret',4=>'April',5=>'Mei',6=>'Juni',7=>'Juli',8=>'Agustus',9=>'September',10=>'Oktober',11=>'November',12=>'Desember'];
+                    $monthLabel = $monthNames[$payment->month] ?? ($payment->month ?? '');
+                    foreach ($admins as $admin) {
+                        Notification::create([
+                            'type' => 'payment_upload_user',
+                            'title' => $user->name . ' telah mengunggah bukti bayar bulan ' . strtolower($monthLabel) . '.',
+                            'message' => 'Periksa bukti pembayaran dari penghuni tersebut.',
+                            'data' => ['user_id' => $admin->id, 'payment_id' => $payment->id, 'room_id' => $payment->room_id ?? $user->room->id ?? null],
+                            'is_read' => false,
+                        ]);
+                    }
+
+                // Log activity for re-upload so it appears in Last Transactions
+                \App\Models\Activity::create([
+                    'user_id' => $user->id,
+                    'action' => 'upload_payment_proof',
+                    'meta' => [
+                        'payment_id' => $payment->id,
+                        'month' => $payment->month,
+                        'year' => $payment->year,
+                        'room_number' => optional($user->room)->number,
+                        'tenant_name' => $user->name,
+                    ],
+                ]);
 
                 return redirect()->route('userpage')->with('success', 'Bukti pembayaran berhasil diunggah ulang!');
             }
@@ -178,15 +195,30 @@ class PaymentController extends Controller
                     // notify admins about new upload (same as create flow)
                     $user = User::find($request->user_id);
                     $admins = User::where('role', 'admin')->get();
-                    foreach ($admins as $admin) {
-                        Notification::create([
-                            'type' => 'payment_upload_user',
-                            'title' => $user->name . ' telah mengunggah bukti bayar bulan ini.',
-                            'message' => 'Periksa bukti pembayaran dari penghuni tersebut.',
-                            'data' => ['user_id' => $admin->id, 'payment_id' => $existing->id],
-                            'is_read' => false,
-                        ]);
-                    }
+                        $monthNames = [1=>'Januari',2=>'Februari',3=>'Maret',4=>'April',5=>'Mei',6=>'Juni',7=>'Juli',8=>'Agustus',9=>'September',10=>'Oktober',11=>'November',12=>'Desember'];
+                        $monthLabel = $existing->month;
+                        foreach ($admins as $admin) {
+                            Notification::create([
+                                'type' => 'payment_upload_user',
+                                'title' => $user->name . ' telah mengunggah bukti bayar bulan ' . strtolower($monthLabel) . '.',
+                                'message' => 'Periksa bukti pembayaran dari penghuni tersebut.',
+                                'data' => ['user_id' => $admin->id, 'payment_id' => $existing->id, 'room_id' => $existing->room_id ?? $user->room->id ?? null],
+                                'is_read' => false,
+                            ]);
+                        }
+
+                    // Log activity for re-upload from existing record
+                    \App\Models\Activity::create([
+                        'user_id' => $user->id,
+                        'action' => 'upload_payment_proof',
+                        'meta' => [
+                            'payment_id' => $existing->id,
+                            'month' => $existing->month,
+                            'year' => $existing->year,
+                            'room_number' => optional($user->room)->number,
+                            'tenant_name' => $user->name,
+                        ],
+                    ]);
 
                     return redirect()->route('userpage')
                         ->with('success', 'Bukti pembayaran berhasil diunggah ulang!');
@@ -220,15 +252,30 @@ class PaymentController extends Controller
         // 🔔 Tambahan notifikasi admin
         $user = User::find($request->user_id);
         $admins = User::where('role', 'admin')->get();
+        $monthNames = [1=>'Januari',2=>'Februari',3=>'Maret',4=>'April',5=>'Mei',6=>'Juni',7=>'Juli',8=>'Agustus',9=>'September',10=>'Oktober',11=>'November',12=>'Desember'];
+        $monthLabel = $monthNames[$payment->month] ?? ($validated['month'] ?? null);
         foreach ($admins as $admin) {
             Notification::create([
                 'type' => 'payment_upload_user',
-                'title' => $user->name . ' telah mengunggah bukti bayar bulan ini.',
+                'title' => $user->name . ' telah mengunggah bukti bayar bulan ' . strtolower($monthLabel) . '.',
                 'message' => 'Periksa bukti pembayaran dari penghuni tersebut.',
-                'data' => ['user_id' => $admin->id, 'payment_id' => $payment->id ?? null],
+                'data' => ['user_id' => $admin->id, 'payment_id' => $payment->id ?? null, 'room_id' => $payment->room_id ?? $user->room->id ?? null],
                 'is_read' => false,
             ]);
         }
+
+        // Log activity for create so it appears in Last Transactions
+        \App\Models\Activity::create([
+            'user_id' => $user->id,
+            'action' => 'upload_payment_proof',
+            'meta' => [
+                'payment_id' => $payment->id ?? null,
+                'month' => $payment->month ?? $validated['month'] ?? null,
+                'year' => $payment->year ?? $validated['year'] ?? null,
+                'room_number' => optional($user->room)->number,
+                'tenant_name' => $user->name,
+            ],
+        ]);
 
         return redirect()->route('payment.index')
             ->with('success', 'Pembayaran berhasil disimpan!');

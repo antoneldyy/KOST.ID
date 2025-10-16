@@ -141,11 +141,10 @@
             <label>Penghuni</label>
             <select class="form-control" name="user_id">
               <option value="">- Kosong -</option>
-              @foreach(\App\Models\User::where('role','user')->orderBy('name')->get() as $tenant)
+              @foreach(\App\Models\User::where('role','user')->where('status','active')->orderBy('name')->get() as $tenant)
                 <option value="{{ $tenant->id }}"
-                        {{ $room->user_id == $tenant->id ? 'selected' : '' }}
-                        {{ $tenant->status === 'deactive' ? 'disabled' : '' }}>
-                  {{ $tenant->name }} {{ $tenant->status === 'deactive' ? '(nonaktif)' : '' }}
+                        {{ $room->user_id == $tenant->id ? 'selected' : '' }}>
+                  {{ $tenant->name }}
                 </option>
               @endforeach
             </select>
@@ -224,6 +223,41 @@ function loadPayments(roomId) {
     })
     .catch(() => target.innerHTML = '<div class="text-center py-3 text-danger">Gagal memuat data</div>');
 }
+
+// Auto-open room payments and optionally highlight a payment if URL params are present
+document.addEventListener('DOMContentLoaded', function() {
+  const params = new URLSearchParams(window.location.search);
+  const openRoomId = params.get('open_room_id');
+  const openPaymentId = params.get('open_payment_id');
+  if (openRoomId) {
+    // find the collapse toggle button and trigger it
+    const targetBtn = document.querySelector(`[data-target="#payments${openRoomId}"]`);
+    if (targetBtn) {
+      // open collapse
+      const collapseEl = document.getElementById('payments' + openRoomId);
+      if (collapseEl && collapseEl.classList.contains('collapse')) {
+        $(collapseEl).collapse('show');
+      }
+      // load payments then highlight
+      loadPayments(parseInt(openRoomId));
+
+      // after a short delay try to highlight the specific payment row when loaded
+      if (openPaymentId) {
+        const tryHighlight = () => {
+          const row = document.getElementById('payment-row-' + openPaymentId);
+          if (row) {
+            row.classList.add('table-primary');
+            row.scrollIntoView({behavior: 'smooth', block: 'center'});
+          } else {
+            // try again shortly until loaded
+            setTimeout(tryHighlight, 300);
+          }
+        };
+        setTimeout(tryHighlight, 500);
+      }
+    }
+  }
+});
 
 function deleteRoom(roomId) {
   if (confirm('Hapus kamar?')) {
